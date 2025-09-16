@@ -1,0 +1,176 @@
+rm(list = ls())
+
+library(akima)
+
+df.biomass <- readRDS("./outputs/All.biomass.maps.RDS")
+All.Transitions <- readRDS("./outputs/All.transitions.future.RDS")
+df.GW <- readRDS("./outputs/df.Global.warming_periods.RDS") %>%
+  dplyr::select(-c(tas.m,tas.m.ref))
+
+
+MEM <- All.Transitions
+
+Biomass <- df.biomass %>%
+  filter(source == "MEM") %>%
+  na.omit() %>%
+  dplyr::select(-c(source,lon.lat))
+
+transitions <- MEM %>%
+  filter(LC %in% c(1,2,3)) %>%
+  filter(value.ref_LC.pred != value_LC.pred) %>%
+  left_join(Biomass,
+            by = c("lon","lat"))
+
+hist(transitions[["AGB"]])
+
+transitions.AGB <- transitions %>%
+  group_by(model,scenario,period,value.ref_LC.pred,value_LC.pred) %>%
+  summarise(N = n(),
+            AGB.m = mean(AGB/2,na.rm = TRUE)/10,
+            area.tot = sum(area*land.frac)/1e12,                          # Million km²
+            AGB.tot = sum(AGB/2/10*area*land.frac,na.rm = TRUE)/1e12,     # Peta g C
+            .groups = "keep") %>%
+  left_join(df.GW,
+            by = c("model","scenario","period"))
+
+df2plot <- transitions.AGB %>%
+  filter(value.ref_LC.pred == 2,
+         value_LC.pred == 3,
+         scenario != "ssp534-over") %>%
+  group_by(model,scenario,period,gw) %>%
+  summarise(N = sum(N),
+            area.tot = sum(area.tot),
+            AGB.tot = sum(AGB.tot),
+
+            .groups = "keep")
+
+df.GW.hist <- df.GW %>%
+  filter(period == "historical")
+
+df2plot <- bind_rows(df2plot,
+                     df.GW.hist %>%
+                       filter(scenario == "ssp245") %>%
+                       mutate(N = 0, area.tot = 0, AGB.tot = 0))
+
+df2plot.shitter <- df2plot %>%
+  rowwise()  %>%
+  mutate(gw = gw*(runif(1,0.95,1.05)))
+
+df2plot.CI <- df2plot.shitter %>%
+  filter(model == "MEM") %>%
+  left_join(df2plot.shitter %>%
+              filter(model != "MEM") %>%
+              group_by(scenario, period) %>%
+              summarise(gw.low = quantile(gw,0.15,na.rm = TRUE),
+                        gw.high = quantile(gw,0.85,na.rm = TRUE),
+                        AGB.tot.high = quantile(AGB.tot,0.15,na.rm = TRUE),
+                        AGB.tot.low = quantile(AGB.tot,0.85,na.rm = TRUE),
+                        .groups = "keep"),
+            by = c("scenario","period"))
+
+A <- ggplot(data = df2plot.CI,
+            mapping = aes(x = gw, y = AGB.tot)) +
+  geom_point(aes(color = scenario)) +
+  stat_smooth(data = df2plot %>%
+                filter(model == "MEM"),
+              color = "black",fill = "grey",
+              method = "lm",se = TRUE,fullrange = TRUE) +
+  geom_errorbar(aes(ymin = AGB.tot.low, ymax = AGB.tot.high,
+                    color = scenario)) +
+  geom_errorbar(aes(xmin = gw.low, xmax = gw.high,
+                    color = scenario)) +
+  scale_color_manual(values = c("#263b5d","#8b9bac","#b48a40","#6a2d31")) +
+
+  theme_bw() +
+  theme(text = element_text(size = 20),
+        strip.background = element_blank(),
+        strip.text = element_blank()) +
+  labs(x = "", y = "") +
+  guides(shape = "none", color = "none") +
+  scale_x_continuous(limits = c(0,6.2))
+
+A
+
+A.sum <- summary(lm(data = df2plot %>%
+     filter(model == "MEM"),
+   formula = AGB.tot ~ gw))
+A.sum$coefficients
+
+changes.AGB <- MEM %>%
+  filter(LC %in% c(1,2,3)) %>%
+  filter(value.ref_LC.pred == value_LC.pred,
+         agreement) %>%
+  left_join(Biomass,
+            by = c("lon","lat")) %>%
+  group_by(model,scenario,seasonality,period,value.ref_LC.pred,value_LC.pred) %>%
+  summarise(N = n(),
+            AGB.m = mean(AGB/2,na.rm = TRUE)/10,
+            area.tot = sum(area*land.frac)/1e12,                          # Million km²
+            AGB.tot = sum(AGB/2/10*area*land.frac,na.rm = TRUE)/1e12,     # Peta g C
+            .groups = "keep") %>%
+  left_join(df.GW,
+            by = c("model","scenario","period"))
+
+df2plot.changes <- changes.AGB %>%
+  filter(scenario != "ssp534-over",
+         value.ref_LC.pred %in% c(2,3)) %>%
+  mutate(AGB.tot.mod = case_when(period == "historical" ~ 0,
+                                 TRUE ~ AGB.tot)) %>%
+  filter(period != "historical")
+
+
+df2plot.changes.shitter <- df2plot.changes %>%
+  rowwise()  %>%
+  mutate(gw = gw*(runif(1,0.95,1.05)))
+
+df2plot.changes.CI <- df2plot.changes.shitter %>%
+  filter(model == "MEM") %>%
+  left_join(df2plot.changes.shitter %>%
+              filter(model != "MEM") %>%
+              group_by(scenario, seasonality, period, value.ref_LC.pred) %>%
+              summarise(gw.low = quantile(gw,0.15,na.rm = TRUE),
+                        gw.high = quantile(gw,0.85,na.rm = TRUE),
+                        AGB.tot.high = quantile(AGB.tot,0.15,na.rm = TRUE),
+                        AGB.tot.low = quantile(AGB.tot,0.85,na.rm = TRUE),
+                        .groups = "keep"),
+            by = c("scenario","period","seasonality","value.ref_LC.pred"))
+
+B <- ggplot(data = df2plot.changes.CI,
+            mapping = aes(x = gw, y = AGB.tot.mod)) +
+  geom_point(aes(color = scenario)) +
+  geom_errorbar(aes(ymin = AGB.tot.low, ymax = AGB.tot.high,
+                    color = scenario)) +
+  geom_errorbar(aes(xmin = gw.low, xmax = gw.high,
+                    color = scenario)) +
+  stat_smooth(data = df2plot.changes %>%
+                filter(model == "MEM"),
+              color = "black",fill = "grey",
+              method = "lm",se = TRUE,fullrange = TRUE) +
+  facet_grid(value.ref_LC.pred ~ seasonality) +
+  theme_bw() +
+  scale_color_manual(values = c("#263b5d","#8b9bac","#b48a40","#6a2d31")) +
+  theme(text = element_text(size = 20),
+        strip.background = element_blank(),
+        strip.text = element_blank()) +
+  labs(x = "", y = "") +
+  guides(shape = "none", color = "none") +
+  scale_x_continuous(limits = c(0,6.2))
+
+B
+
+df2plot.changes %>%
+  filter(model == "MEM") %>%
+  group_by(seasonality,value.ref_LC.pred) %>%
+  summarise(slope = summary(lm(AGB.tot ~ gw))[["coefficients"]][2,1],
+            pval = summary(lm(AGB.tot ~ gw))[["coefficients"]][2,4],
+            .groups = "keep")
+
+
+changes.AGB %>%
+  filter(scenario != "ssp534-over",
+         model == "MEM",
+         period == "Long_future",
+         value.ref_LC.pred %in% c(1,2,3)) %>%
+  group_by(seasonality,value.ref_LC.pred) %>%
+  summarise(AGB.tot.m = mean(AGB.tot,na.rm = TRUE),
+            .groups = "keep")

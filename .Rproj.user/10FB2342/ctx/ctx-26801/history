@@ -1,0 +1,512 @@
+FUN=function(x) mean(x, na.rm=TRUE),
+partial=FALSE, fill=NA, align="right"),
+value.rm = rollapply(value, width=Window,
+FUN=function(x) mean(x, na.rm=TRUE),
+partial=TRUE, fill=NA, align="center"))
+GPP.IFL.anomaly <- GPP.IFL %>%
+group_by(lon,lat) %>%
+mutate(mean.obs = mean(value,
+na.rm = TRUE)) %>%
+mutate(detrended = value - mean.obs) %>%
+group_by(lon,lat,month) %>%
+mutate(mean.month = mean(detrended,
+na.rm = TRUE)) %>%
+mutate(anomaly = detrended - mean.month) %>%
+mutate(reconstructed = mean.obs + mean.month) %>%
+mutate(anomaly.m = anomaly/sd(anomaly,
+na.rm = TRUE)) %>%
+group_by(lon,lat) %>%
+mutate(anomaly.rm = rollapply(anomaly, width=Window,
+FUN=function(x) mean(x, na.rm=TRUE),
+partial=TRUE, fill=NA, align="center"),
+anomaly.m.rm = rollapply(anomaly.m, width=Window,
+FUN=function(x) mean(x, na.rm=TRUE),
+partial=FALSE, fill=NA, align="right"),
+value.rm = rollapply(value, width=Window,
+FUN=function(x) mean(x, na.rm=TRUE),
+partial=TRUE, fill=NA, align="center"))
+saveRDS(GPP.IFL.anomaly,
+"./outputs/GPP.IFL.anomaly.FluxSat.RDS")
+ggplot() +
+geom_raster(data = GPP.IFL.anomaly %>%
+filter(year == 2023, month == 10),
+aes(x = lon, y = lat,
+fill = anomaly.m)) +
+geom_sf(data = world,fill = NA, color = "grey") +
+coord_sf(xlim = c(-90, -30), ylim = c(-1, 1)*23.25, expand = FALSE) +
+scale_fill_gradient2(limits = c(-2,2),
+oob = scales::squish) +
+theme_bw() +
+labs(x = "",y = "") +
+theme(text = element_text(size = 20))
+ggplot(data = df.anomaly) +
+geom_hline(yintercept = 0, linetype = 2) +
+geom_line(aes(x = year + (month - 1/2)/12,
+y = anomaly.m.rm)) +
+theme_bw()
+df.anomaly
+View(df.anomaly)
+ggplot() +
+geom_raster(data = GPP.IFL.anomaly %>%
+filter(year == 2024, month == 10),
+aes(x = lon, y = lat,
+fill = anomaly.m)) +
+geom_sf(data = world,fill = NA, color = "grey") +
+coord_sf(xlim = c(-90, -30), ylim = c(-1, 1)*23.25, expand = FALSE) +
+scale_fill_gradient2(limits = c(-2,2),
+oob = scales::squish) +
+theme_bw() +
+labs(x = "",y = "") +
+theme(text = element_text(size = 20))
+source("~/Documents/projects/Congo.vs.Amazon/scripts/Biomass.vs.Climate.R", echo=TRUE)
+agb_aov <- aov(AGB ~ biome, data = df2plot)
+summary(agb_aov)
+TukeyHSD(agb_aov)
+library(multcompView)
+Tukey.agb <- TukeyHSD(agb_aov)
+letters_agb <- multcompLetters4(agb_aov, Tukey.agb)
+print(letters_agb)
+source("~/Documents/projects/Congo.vs.Amazon/scripts/Figure.soilC.R", echo=TRUE)
+soc <- rast("~/Downloads/SOC_0_5cm_0_5deg_2025_05_26_21_36_35.tif")
+library(terra)
+soc <- rast("~/Downloads/SOC_0_5cm_0_5deg_2025_05_26_21_36_35.tif")
+plot(soc)
+coord <- expand.grid(lat = seq(-30.25,30.25,0.5),
+lon = seq(-179.75,179.75,0.5)) %>%
+mutate(lon.lat = paste0(lon,".",lat))
+LandFrac <- readRDS("./outputs/landFrac.RDS") %>%
+mutate(lon = round(100*lon)/100,
+lat = round(100*lat)/100)
+Gridarea <- RCMIP5:::calcGridArea(lon = as.vector(unique(coord$lon)),
+lat = as.vector(unique(coord$lat))) %>%
+melt() %>%
+mutate(Var1 = (as.vector(unique(coord$lon)))[Var1],
+Var2 = (as.vector(unique(coord$lat)))[Var2]) %>%
+rename(lon = Var1,
+lat = Var2,
+area = value) %>%
+mutate(lon = round(100*lon)/100,
+lat = round(100*lat)/100) %>%
+left_join(LandFrac,
+by = c("lat","lon")) %>%
+mutate(area = area*value)
+soc.rspld <- resample(raster(soc),rasterFromXYZ(coord %>%
+mutate(value = 1) %>%
+dplyr::select(lon,lat,value)))
+soc.rspld.df <- as.data.frame(soc.rspld,xy = TRUE) %>%
+rename(lon = x,
+lat = y) %>%
+left_join(Gridarea,
+by = c("lon","lat")) %>%
+filter(value > 0,
+!is.na(ocs_0.30cm_mean))
+world <- rnaturalearth::ne_countries(scale = "medium", returnclass = "sf")
+ggplot() +
+geom_raster(data = soc.rspld.df,
+aes(x = lon, y = lat,
+fill = ocs_0.30cm_mean)) +
+geom_sf(data = world,fill = NA, color = "grey") +
+coord_sf(xlim = c(-120, 160), ylim = c(-1, 1)*23.25, expand = FALSE) +
+theme_bw() +
+labs(x = "",y = "",
+fill = "Aridity index") +
+theme(legend.position = "none",
+text = element_text(size = 20))
+Gridarea <- RCMIP5:::calcGridArea(lon = as.vector(unique(coord$lon)),
+lat = as.vector(unique(coord$lat))) %>%
+melt() %>%
+mutate(Var1 = (as.vector(unique(coord$lon)))[Var1],
+Var2 = (as.vector(unique(coord$lat)))[Var2]) %>%
+rename(lon = Var1,
+lat = Var2,
+area = value) %>%
+mutate(lon = round(100*lon)/100,
+lat = round(100*lat)/100) %>%
+left_join(LandFrac,
+by = c("lat","lon")) %>%
+mutate(area = area*value)
+soc.rspld <- resample(raster(soc),rasterFromXYZ(coord %>%
+mutate(value = 1) %>%
+dplyr::select(lon,lat,value)))
+library(rgee)
+library(reshape2)
+library(raster)
+soc.rspld <- resample(raster(soc),rasterFromXYZ(coord %>%
+mutate(value = 1) %>%
+dplyr::select(lon,lat,value)))
+soc.rspld.df <- as.data.frame(soc.rspld,xy = TRUE) %>%
+rename(lon = x,
+lat = y) %>%
+left_join(Gridarea,
+by = c("lon","lat")) %>%
+filter(value > 0,
+!is.na(ocs_0.30cm_mean))
+world <- rnaturalearth::ne_countries(scale = "medium", returnclass = "sf")
+ggplot() +
+geom_raster(data = soc.rspld.df,
+aes(x = lon, y = lat,
+fill = ocs_0.30cm_mean)) +
+geom_sf(data = world,fill = NA, color = "grey") +
+coord_sf(xlim = c(-120, 160), ylim = c(-1, 1)*23.25, expand = FALSE) +
+theme_bw() +
+labs(x = "",y = "",
+fill = "Aridity index") +
+theme(legend.position = "none",
+text = element_text(size = 20))
+Biomes <- c("Humid_large","Humid_low","Humid_seasonal","Dry_subhumid",
+"Semiarid","Arid","Hyperarid")
+data  <- readRDS("./outputs/Data.used.RDS") %>%
+left_join(Gridarea,
+by = c("lat","lon")) %>%
+ungroup() %>%
+mutate(biome = Biomes[biome]) %>%
+mutate(biome = factor(biome,
+levels = Biomes)) %>%
+dplyr::select(lon,lat,biome,area,value)
+data.vs.soc <- data %>%
+left_join(soc.rspld.df,
+by = c("lon","lat"))
+ggplot(data = data.vs.soc) +
+geom_boxplot(aes(x = biome, y = ocs_0.30cm_mean/10,  # t/ha --> kg/m2
+fill = biome),
+alpha = 0.8) +
+theme_bw() +
+scale_fill_manual(values = (c("#253b10","#005401","#448704","#86a540",
+"#c49402","#d0ce9a","#e5e4cb"))) +
+guides(linetype = "none") +
+labs(x = "", y = "") +
+theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),
+text = element_text(size = 20)) +
+guides(fill = "none")
+LM <- (lm(data = data.vs.soc,
+formula = (ocs_0.30cm_mean/10) ~ biome))
+summary(LM)
+soilc_aov <- aov((ocs_0.30cm_mean/10) ~ biome, data = data.vs.soc)
+summary(soilc_aov)
+library(multcompView)
+Tukey.soilc <- TukeyHSD(soilc_aov)
+letters_soilc <- multcompLetters4(soilc_aov, Tukey.soilc)
+print(letters_soilc)
+A <- readRDS("~/Downloads/Roll.Timeseries.MCWD.ACCESS-CM2.historical.RDS")
+library(dplyr)
+library(YGB)
+library(Rcpp)
+library(ggplot2)
+library(zoo)
+library(roll)
+library(data.table)
+A.cat <- A %>%
+ungroup() %>%
+mutate(cat = case_when(MCWD > -250 ~ 2,
+MAP < 1000 ~ 1,
+is.na(MCWD) | is.na(MAP) ~ NA_integer_,
+TRUE ~ 3))
+A.sum <- A.cat %>%
+ungroup() %>%
+filter(lon >= -25 & lon <= 55) %>%
+dplyr::select(lon,lat,year,month,scenario,model,cat)
+A.cat.dt <- as.data.table(A.sum)
+setorder(A.cat.dt,model,scenario, lon, lat, year, month)
+roll_freq <- function(vec, val, window) {
+vec <- as.integer(vec)
+is_valid <- !is.na(vec)
+match_val <- as.integer(vec == val)
+match_val[!is_valid] <- 0
+is_valid_int <- as.integer(is_valid)
+# Cumulative sums
+cs_match <- c(0, cumsum(match_val))
+cs_valid <- c(0, cumsum(is_valid_int))
+# Indices
+n <- length(vec)
+idx_start <- pmax(1, seq_len(n) - window + 1)
+# Vectorized window sums using start and end index
+count <- cs_match[seq_len(n) + 1] - cs_match[idx_start]
+total <- cs_valid[seq_len(n) + 1] - cs_valid[idx_start]
+# Frequency (with NA where total is 0)
+freq <- ifelse(total == 0, NA_real_, count / total)
+return(freq)
+}
+# Apply rolling counts by group
+A.cat.dt[, `:=`(
+cat.1 = roll_freq(cat, 1, 360),
+cat.2 = roll_freq(cat, 2, 360),
+cat.3 = roll_freq(cat, 3, 360)
+), by = .(scenario, model, lon, lat)]
+A.cat.dt.lon <- melt(
+A.cat.dt[, !"cat"],                     # Drop original `cat` column
+measure.vars = patterns("^cat\\.[123]$"), # Select cat.1, cat.2, cat.3
+variable.name = "cat",                   # Name for new 'cat' column
+value.name = "value"                     # Name for values
+)
+A.cat.dt.lon[, cat := as.integer(gsub("cat\\.", "", cat))]
+world <- rnaturalearth::ne_countries(scale = "medium", returnclass = "sf")
+ggplot() +
+geom_raster(data = A.cat %>%
+filter(year == 2000,month == 1),
+aes(x = lon, y = lat,
+fill = as.factor(cat))) +
+geom_sf(data = world,fill = NA, color = "grey") +
+coord_sf(xlim = c(-120, 160), ylim = c(-1, 1)*23.25, expand = FALSE) +
+# facet_wrap(~ cat) +
+theme_bw() +
+labs(x = "",y = "",
+fill = "Aridity index") +
+theme(text = element_text(size = 20))
+pos <- A.cat.dt %>%
+group_by(lon,lat) %>%
+filter()
+pos <- A.cat.dt %>%
+group_by(lon,lat) %>%
+filter(cat.2 > 0 & cat.3 > 0) %>%
+dplyr::select(lon,lat) %>%
+distinct()
+clon <- pos$lon[1] ; clat <- pos$lat[1]
+ggplot(data = A.cat.dt.lon[A.cat.dt.lon$lon == clon  & A.cat.dt.lon$lat == clat,]) +
+geom_line(aes(x = year + (month - 1/2)/12,
+y = value, color = as.factor(cat))) +
+theme_bw()
+clon
+pos
+A.cat.dt
+historical.cat <- A.cat.dt %>%
+filter(year == 2000,month == 1)
+historical.cat
+pos
+pos <- A.cat.dt %>%
+group_by(lon,lat) %>%
+filter(cat.2 > 0 & cat.3 > 0) %>%
+dplyr::select(lon,lat) %>%
+distinct() %>%
+mutate(lon.lat= paste0(lon,".",lat))
+pos <- A.cat.dt %>%
+group_by(lon,lat) %>%
+filter(cat.2 > 0 & cat.3 > 0) %>%
+dplyr::select(lon,lat) %>%
+distinct()
+historical.cat <- pos %>%
+left_join(A.cat.dt %>%
+filter(year == 2000,month == 1) %>%
+dplyr::select(lon,lat,cat))
+historical.cat <- pos %>%
+left_join(A.cat.dt %>%
+filter(year == 2000,month == 1) %>%
+dplyr::select(lon,lat,cat),
+by = c("lon","lat"))
+historical.cat
+cselected <- historical.cat %>%
+filter(cat == 2)
+cselected
+clon <- pos$lon[cselected[1]] ; clat <- pos$lat[cselected[1]]
+cselected <- historical.cat %>%
+filter(cat == 2)
+cselected
+clon <- cselected$lon[1] ; clat <- cselected$lat[1]
+ggplot(data = A.cat.dt.lon[A.cat.dt.lon$lon == clon  & A.cat.dt.lon$lat == clat,]) +
+geom_line(aes(x = year + (month - 1/2)/12,
+y = value, color = as.factor(cat))) +
+theme_bw()
+clon <- cselected$lon[10] ; clat <- cselected$lat[10]
+ggplot(data = A.cat.dt.lon[A.cat.dt.lon$lon == clon  & A.cat.dt.lon$lat == clat,]) +
+geom_line(aes(x = year + (month - 1/2)/12,
+y = value, color = as.factor(cat))) +
+theme_bw()
+clon <- cselected$lon[100] ; clat <- cselected$lat[100]
+ggplot(data = A.cat.dt.lon[A.cat.dt.lon$lon == clon  & A.cat.dt.lon$lat == clat,]) +
+geom_line(aes(x = year + (month - 1/2)/12,
+y = value, color = as.factor(cat))) +
+theme_bw()
+plot(A %>%
+filter(lon == clon,
+lat == clat) %>%
+pull(MAP),type = 'l')
+plot(A %>%
+filter(lon == clon,
+lat == clat) %>%
+pull(MCWD),type = 'l')
+ggplot() +
+geom_raster(data = A.MCWD.sum,
+aes(x = lon, y = lat,
+fill = MAP.m - Etot.m)) +
+geom_sf(data = world,fill = NA, color = "grey") +
+scale_fill_gradient2(limits = c(-1500,1500),
+oob = scales::squish) +
+coord_sf(xlim = c(-120, 160), ylim = c(-1, 1)*23.25, expand = FALSE) +
+theme_bw() +
+labs(x = "",y = "",
+fill = "Aridity index") +
+theme(text = element_text(size = 20))
+ggplot() +
+geom_raster(data = A.cat %>%
+filter(year == 2000,month == 1),
+aes(x = lon, y = lat,
+fill = as.factor(cat))) +
+geom_sf(data = world,fill = NA, color = "grey") +
+coord_sf(xlim = c(-120, 160), ylim = c(-1, 1)*23.25, expand = FALSE) +
+# facet_wrap(~ cat) +
+theme_bw() +
+labs(x = "",y = "",
+fill = "Aridity index") +
+theme(text = element_text(size = 20))
+source("~/Documents/projects/Congo.vs.Amazon/scripts/Biomass.vs.Climate.R", echo=TRUE)
+source("~/Documents/projects/Congo.vs.Amazon/scripts/Compute.transitions.R", echo=TRUE)
+files
+all.changes <- readRDS("./outputs/all.changes.RDS")
+world <- rnaturalearth::ne_countries(scale = "medium", returnclass = "sf")
+ggplot() +
+geom_raster(data = all.changes,
+aes(x = lon, y = lat,
+fill = as.factor(type))) +
+geom_sf(data = world,fill = NA, color = "grey") +
+coord_sf(xlim = c(-120, 160), ylim = c(-1, 1)*23.25, expand = FALSE) +
+theme_bw() +
+facet_wrap(~scenario) +
+labs(x = "",y = "",
+fill = "Aridity index") +
+theme(text = element_text(size = 20))
+transitions <- readRDS("./outputs/transitions.RDS")
+ggplot(data = transitions) +
+geom_line(aes(x = year + (month - 1/2)/12,
+y = value.m, color = as.factor(cat))) +
+facet_wrap(~ scenario) +
+theme_bw()
+ggplot(data = transitions) +
+geom_line(aes(x = year + (month - 1/2)/12,
+y = value.m, color = as.factor(cat))) +
+facet_wrap(~ scenario) +
+scale_x_continuous(limits = c(2013,2020)) +
+theme_bw()
+files
+files <- list.files("./outputs/",
+"^Roll.Timeseries.MCWD",full.names = TRUE)
+files <- files[!grepl("historical",files)]
+files
+source("~/Documents/projects/Congo.vs.Amazon/scripts/Compute.transitions.R", echo=TRUE)
+all.changes <- readRDS("./outputs/all.changes.RDS")
+world <- rnaturalearth::ne_countries(scale = "medium", returnclass = "sf")
+ggplot() +
+geom_raster(data = all.changes,
+aes(x = lon, y = lat,
+fill = as.factor(type))) +
+geom_sf(data = world,fill = NA, color = "grey") +
+coord_sf(xlim = c(-120, 160), ylim = c(-1, 1)*23.25, expand = FALSE) +
+theme_bw() +
+facet_wrap(~scenario) +
+labs(x = "",y = "",
+fill = "Aridity index") +
+theme(text = element_text(size = 20))
+transitions <- readRDS("./outputs/transitions.RDS")
+ggplot(data = transitions) +
+geom_line(aes(x = year + (month - 1/2)/12,
+y = value.m, color = as.factor(cat))) +
+facet_wrap(~ scenario) +
+scale_x_continuous(limits = c(2013,2020)) +
+theme_bw()
+library(epwshiftr)
+A <- esgf_query(
+activity = "ScenarioMIP",
+variable = "pr",
+frequency = "mon",
+experiment = "ssp534-over",
+source = NULL,
+variant = NULL,
+replica = FALSE,
+latest = TRUE,
+resolution = NULL,
+limit = 10000L,
+data_node = NULL)
+nrow(A)
+sort(unique(A$source_id))
+B <- esgf_query_all(
+activity = "ScenarioMIP",
+variable = "pr",
+frequency = "mon",
+experiment = "ssp534-over",
+source = NULL,
+variant = NULL,
+replica = FALSE,
+latest = TRUE,
+resolution = NULL,
+limit = 10000L,
+data_node = NULL)
+nrow(B)
+B
+sort(unique(A$source_id))
+sort(unique(B$source_id))
+nrow(B %>%
+distinct())
+library(dplyr)
+nrow(B %>%
+distinct())
+sort(unique(B$source_id))
+B <- esgf_query_all(
+activity = "ScenarioMIP",
+variable = "pr",
+frequency = "mon",
+experiment = "ssp534-over",
+source = NULL,
+variant = NULL,
+replica = FALSE,
+latest = TRUE,
+resolution = NULL,
+limit = 10000L,
+data_node = NULL)
+?esgf_query_all
+B
+B <- esgf_query_all(
+activity = "ScenarioMIP",
+variable = "pr",
+frequency = "mon",
+experiment = "ssp534-over",
+type = "File",
+source = NULL,
+variant = NULL,
+replica = FALSE,
+latest = TRUE,
+resolution = NULL,
+limit = 10000L,
+data_node = NULL)
+head(B)
+head(B$datetime_start)
+head(year(B$datetime_start))
+library(lubridate)
+head(year(B$datetime_start))
+B <- esgf_query_all(
+activity = "ScenarioMIP",
+variable = "tas",
+frequency = "mon",
+experiment = "ssp370",
+type = "File",
+source = NULL,
+variant = NULL,
+replica = FALSE,
+latest = TRUE,
+resolution = NULL,
+limit = 10000L,
+data_node = NULL)
+activity = "ScenarioMIP"
+variable = "tas"
+frequency = "mon"
+experiment = "ssp370"
+type = "File"
+source = NULL
+variant = NULL
+replica = FALSE
+latest = TRUE
+resolution = NULL
+limit = 10000L
+data_node = NULL
+library(epwshiftr)
+library(dplyr)
+B <- esgf_query_all(
+activity = "ScenarioMIP",
+variable = "tas",
+frequency = "mon",
+experiment = "ssp370",
+type = "File",
+source = NULL,
+variant = NULL,
+replica = FALSE,
+latest = TRUE,
+resolution = NULL,
+limit = 10000L,
+data_node = NULL)

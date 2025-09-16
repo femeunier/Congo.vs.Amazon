@@ -1,0 +1,26 @@
+{
+    "id": "7CB13D60",
+    "path": "~/Documents/projects/TrENDY.analyses/scripts/monthly.climate.pantropical.R",
+    "project_path": null,
+    "type": "r_source",
+    "hash": "883781595",
+    "contents": "",
+    "dirty": true,
+    "created": 1758014667155.0,
+    "source_on_save": false,
+    "relative_order": 16,
+    "properties": {
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "211,0",
+        "scrollLine": "201"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1742055109,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1758015836220,
+    "read_only": false,
+    "read_only_alternatives": []
+}

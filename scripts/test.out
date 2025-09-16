@@ -1,0 +1,30 @@
+Index of /MOLT/MOD13C1.061/2000.03.05
+(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+ $(document).ready(function() { $('#example').DataTable( { "order": [[2, "asc" ]] } ); $('#example').DataTable().draw(); } );
+https://urs.earthdata.nasa.gov/users/new/
+.
+https://lpdaac.usgs.gov/
+.
+ 
+Name
+                                            
+Last modified
+      
+Size
+  
+Description
+ 
+Parent Directory
+                                                     -   
+ 
+BROWSE.MOD13C1.A2000065.061.2020040201128.1.jpg
+ 2020-03-19 18:05  3.0M  
+ 
+BROWSE.MOD13C1.A2000065.061.2020040201128.2.jpg
+ 2020-03-19 18:05  2.9M  
+ 
+MOD13C1.A2000065.061.2020040201128.hdf
+          2020-03-19 18:05   99M  
+ 
+MOD13C1.A2000065.061.2020040201128.hdf.xml
+      2020-03-19 18:05   43K  

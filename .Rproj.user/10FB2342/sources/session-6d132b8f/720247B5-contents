@@ -1,0 +1,363 @@
+rm(list = ls())
+
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+library(zoo)
+
+system2("rsync",
+        c("-avz",
+          "hpc:/data/gent/vo/000/gvo00074/felicien/R/outputs/All.S2.CC.pantropical.v13.rspld.RDS",
+          "./outputs/"))
+
+system2("rsync",
+        c("-avz",
+          "hpc:/data/gent/vo/000/gvo00074/felicien/R/outputs/df.all.ts.ERA5.IFL.v13.RDS",
+          "./outputs/"))
+
+df.all <- readRDS("./outputs/All.S2.CC.pantropical.v13.rspld.RDS") %>%
+  ungroup() %>%
+  mutate(basin = case_when(lon <= -30 ~ "Amazon",
+                           TRUE ~ "Congo")) %>%
+  filter(!(model %in% c("CARDAMOM"))) %>%
+  mutate(nep = case_when(!is.na(nep) ~ nep,
+                         !is.na(nee) ~ -nee,
+                         !is.na(npp) & !is.na(rh) ~ npp - rh,
+                         !is.na(gpp) & !is.na(ra) & !is.na(rh) ~ gpp - rh - ra,
+                         TRUE ~ NA_real_)) %>%
+  dplyr::select(-any_of(c("lon.lat",
+                          "ra","rh","nbp","npp","nee"))) %>%
+  pivot_longer(cols = c(gpp,nep),
+               names_to = "variable",
+               values_to = "value")
+
+
+Window = 3
+  
+
+df.basins <- df.all %>%
+  group_by(basin,variable,model,year,month) %>%
+  summarise(value = mean(value,na.rm = TRUE)*86400*365*10,
+            .groups = "keep") %>%
+  group_by(basin,variable,model) %>%
+  mutate(value.rm = rollapply(value, width=Window,
+                              FUN=function(x) mean(x, na.rm=TRUE),
+                              partial=TRUE, fill=NA, align="right"))
+
+
+raw <- readRDS("./outputs/df.all.ts.ERA5.IFL.v13.RDS")
+
+# df.basins <- raw %>%
+#   filter(var %in% c("gpp","nep")) %>%
+#   filter(!(model %in% c("CARDAMOM"))) %>%
+#   mutate(basin = "Amazon") %>%
+#   rename(variable = var,
+#          value = obs.m) %>%
+#   mutate(value = value*10) %>%
+#   group_by(basin,variable,model) %>%
+#   mutate(value.rm = rollapply(value, width=Window,
+#                               FUN=function(x) mean(x, na.rm=TRUE),
+#                               partial=TRUE, fill=NA, align="right"))
+
+df.basins.mod <-  raw %>%
+  filter(var %in% c("gpp","nep")) %>%
+  filter(!(model %in% c("CARDAMOM"))) %>%
+  mutate(basin = "Amazon") %>%
+  rename(variable = var,
+         value = pred.m) %>%
+  mutate(value = value*10) %>%
+  group_by(basin,variable,model) %>%
+  mutate(value.rm = rollapply(value, width=Window,
+                              FUN=function(x) mean(x, na.rm=TRUE),
+                              partial=TRUE, fill=NA, align="right"))
+
+ggplot(data = raw,
+       aes(x = obs.m,y = pred.m, color = model)) +
+  geom_hex(color = NA) +
+  
+  geom_abline(slope = 1,intercept = 0,
+              color = "black", linetype = 2) +
+  stat_smooth(method = "lm") +
+  facet_wrap(~ var) +
+  theme_bw() +
+  guides(fill = "none",
+         color = "none")
+
+df.MEM <- df.basins %>%
+  group_by(basin,variable,year,month) %>%
+  summarise(value.m = mean(value,na.rm = TRUE),
+            .groups = "keep") %>%
+  group_by(basin,variable) %>%
+  mutate(value.m.rm = rollapply(value.m, width=Window,
+                             FUN=function(x) mean(x, na.rm=TRUE),
+                             partial=TRUE, fill=NA, align="right"))
+
+
+df.MEM.mod <- df.basins.mod %>%
+  group_by(basin,variable,year,month) %>%
+  summarise(value.m = mean(value,na.rm = TRUE),
+            .groups = "keep") %>%
+  group_by(basin,variable) %>%
+  mutate(value.m.rm = rollapply(value.m, width=Window,
+                                FUN=function(x) mean(x, na.rm=TRUE),
+                                partial=TRUE, fill=NA, align="right"))
+
+
+Elninos <- data.frame(init = c(1997,2009,2015,2023) + 0.5/12,
+                      end = c(1998,2010,2016,2024) + 11.5/12)
+intercepts <- data.frame(yint = c(Inf,0),
+                         variable = c("gpp","nep"))
+
+ggplot() +
+  geom_rect(data = Elninos,
+            aes(ymin = -Inf, ymax = Inf,
+                xmin = init, xmax = end),
+            fill = "grey", alpha = 0.5) +
+  
+  geom_line(data = df.basins %>%
+              filter(basin == "Amazon",
+                     year < 2024),
+            aes(x = year + (month - 1/2)/12,
+                y = value.rm,
+                group = model),
+            color = "darkgrey",
+            size = 0.1) +
+  
+  geom_line(data = df.basins.mod %>%
+              filter(basin == "Amazon"),
+            aes(x = year + (month - 1/2)/12,
+                y = value.rm,
+                group = model),
+            color = "darkgrey",
+            linetype = 2,
+            size = 0.1) +
+  
+  geom_point(data = df.MEM %>%
+              filter(basin == "Amazon",
+                     year < 2024),
+            aes(x = year + (month - 1/2)/12,
+                y = value.m),
+            size = 0.25) +
+  
+  geom_line(data = df.MEM %>%
+               filter(basin == "Amazon",
+                      year < 2024),
+             aes(x = year + (month - 1/2)/12,
+                 y = value.m.rm)) +
+  geom_line(data = df.MEM.mod %>%
+              filter(basin == "Amazon"),
+            aes(x = year + (month - 1/2)/12,
+                y = value.m.rm),
+            linetype = 2) +
+  
+  geom_hline(data = intercepts,
+             aes(yintercept = yint),
+             linetype = 2) +
+  facet_wrap(~ variable,ncol = 1,
+             scales = "free") +
+  scale_x_continuous(limits = c(1990,2025)) +
+  theme_bw() +
+  labs(x = "", y = "") +
+  guides(color = "none") +
+  theme(text = element_text(size = 20),
+        strip.background = element_blank(),
+        strip.text = element_blank())
+
+
+
+################################################################################
+# Now anomalies
+
+df.slopes <- df.basins %>%
+  na.omit() %>%
+  mutate(time = year + (month -1/2)/12) %>%
+  filter(year >= 1991 & year <= 2010) %>%
+  group_by(basin,variable,model) %>%
+  summarise(slope = coef(lm(value ~ time))[2],
+            intercept = coef(lm(value ~ time))[1],
+            .groups = "keep") %>%
+  dplyr::select(basin,variable,model,
+                slope,intercept) 
+
+df.basins.anomalies <- df.basins %>%
+  ungroup() %>%
+  mutate(time = year + (month -1/2)/12) %>%
+  left_join(df.slopes,
+            by = c("basin","variable","model")) %>%
+  group_by(basin,variable,model) %>%
+  mutate(mean.obs = slope*(time) + intercept) %>%
+  # mutate(mean.obs = mean(value[year >= 1991 & year <= 2010])) %>%
+  mutate(detrended = value - mean.obs) %>%
+  group_by(basin,variable,model,month) %>%
+  mutate(mean.month = mean(detrended[year >= 1991 & year <= 2010])) %>%
+  mutate(anomaly = detrended - mean.month) %>%
+  group_by(basin,variable,model,month) %>%
+  mutate(anomaly.m = anomaly/sd(anomaly)) %>%
+  mutate(mean.pred = slope*time + intercept) %>%
+  ungroup() %>%
+  dplyr::select(basin,variable,model,year,month,value,anomaly,anomaly.m,mean.pred) %>%
+  group_by(basin,variable,model) %>%
+  mutate(anomaly.m.rm = rollapply(anomaly.m, width=Window,
+                                  FUN=function(x) mean(x, na.rm=TRUE),
+                                  partial=TRUE, fill=NA, align="right"))
+
+
+
+df.slopes.mod <- df.basins.mod %>%
+  na.omit() %>%
+  mutate(time = year + (month -1/2)/12) %>%
+  filter(year >= 1991 & year <= 2010) %>%
+  group_by(basin,variable,model) %>%
+  summarise(slope = coef(lm(value ~ time))[2],
+            intercept = coef(lm(value ~ time))[1],
+            .groups = "keep") %>%
+  dplyr::select(basin,variable,model,
+                slope,intercept) 
+
+df.basins.mod.anomalies <- df.basins.mod %>%
+  ungroup() %>%
+  mutate(time = year + (month -1/2)/12) %>%
+  left_join(df.slopes.mod,
+            by = c("basin","variable","model")) %>%
+  group_by(basin,variable,model) %>%
+  mutate(mean.obs = slope*(time) + intercept) %>%
+  # mutate(mean.obs = mean(value[year >= 1991 & year <= 2010])) %>%
+  mutate(detrended = value - mean.obs) %>%
+  group_by(basin,variable,model,month) %>%
+  mutate(mean.month = mean(detrended[year >= 1991 & year <= 2010])) %>%
+  mutate(anomaly = detrended - mean.month) %>%
+  group_by(basin,variable,model,month) %>%
+  mutate(anomaly.m = anomaly/sd(anomaly)) %>%
+  mutate(mean.pred = slope*time + intercept) %>%
+  ungroup() %>%
+  dplyr::select(basin,variable,model,year,month,value,anomaly,anomaly.m,mean.pred) %>%
+  group_by(basin,variable,model) %>%
+  mutate(anomaly.m.rm = rollapply(anomaly.m, width=Window,
+                                  FUN=function(x) mean(x, na.rm=TRUE),
+                                  partial=TRUE, fill=NA, align="right"))
+
+
+df.MEM.slope <- df.MEM %>%
+  na.omit() %>%
+  mutate(time = year + (month -1/2)/12) %>%
+  filter(year >= 1991 & year <= 2010) %>%
+  group_by(basin,variable) %>%
+  summarise(slope = coef(lm(value.m ~ time))[2],
+            intercept = coef(lm(value.m ~ time))[1],
+            .groups = "keep") %>%
+  dplyr::select(basin,variable,
+                slope,intercept) 
+
+df.MEM.anomalies <- df.MEM %>%
+  ungroup() %>%
+  mutate(time = year + (month -1/2)/12) %>%
+  left_join(df.MEM.slope,
+            by = c("basin","variable")) %>%
+  group_by(basin,variable) %>%
+  mutate(mean.obs = slope*(time) + intercept) %>%
+  # mutate(mean.obs = mean(value.m[year >= 1991 & year <= 2010])) %>%
+  mutate(detrended = value.m - mean.obs) %>%
+  group_by(basin,variable,month) %>%
+  mutate(mean.month = mean(detrended[year >= 1991 & year <= 2010])) %>%
+  mutate(anomaly = detrended - mean.month) %>%
+  group_by(basin,variable,month) %>%
+  mutate(anomaly.m = anomaly/sd(anomaly)) %>%
+  mutate(mean.pred = slope*time + intercept) %>%
+  ungroup() %>%
+  dplyr::select(basin,variable,year,month,value.m,anomaly,anomaly.m,mean.pred) %>%
+  group_by(basin,variable) %>%
+  mutate(anomaly.m.rm = rollapply(anomaly.m, width=Window,
+                                  FUN=function(x) mean(x, na.rm=TRUE),
+                                  partial=TRUE, fill=NA, align="right"))
+
+
+df.MEM.mod.slope <- df.MEM.mod %>%
+  na.omit() %>%
+  mutate(time = year + (month -1/2)/12) %>%
+  filter(year >= 1991 & year <= 2010) %>%
+  group_by(basin,variable) %>%
+  summarise(slope = coef(lm(value.m ~ time))[2],
+            intercept = coef(lm(value.m ~ time))[1],
+            .groups = "keep") %>%
+  dplyr::select(basin,variable,
+                slope,intercept) 
+
+df.MEM.mod.anomalies <- df.MEM.mod %>%
+  ungroup() %>%
+  mutate(time = year + (month -1/2)/12) %>%
+  left_join(df.MEM.mod.slope,
+            by = c("basin","variable")) %>%
+  group_by(basin,variable) %>%
+  mutate(mean.obs = slope*(time) + intercept) %>%
+  # mutate(mean.obs = mean(value.m[year >= 1991 & year <= 2010])) %>%
+  mutate(detrended = value.m - mean.obs) %>%
+  group_by(basin,variable,month) %>%
+  mutate(mean.month = mean(detrended[year >= 1991 & year <= 2010])) %>%
+  mutate(anomaly = detrended - mean.month) %>%
+  group_by(basin,variable,month) %>%
+  mutate(anomaly.m = anomaly/sd(anomaly)) %>%
+  mutate(mean.pred = slope*time + intercept) %>%
+  ungroup() %>%
+  dplyr::select(basin,variable,year,month,value.m,anomaly,anomaly.m,mean.pred) %>%
+  group_by(basin,variable) %>%
+  mutate(anomaly.m.rm = rollapply(anomaly.m, width=Window,
+                                  FUN=function(x) mean(x, na.rm=TRUE),
+                                  partial=TRUE, fill=NA, align="right"))
+
+
+ggplot() +
+  geom_rect(data = Elninos,
+            aes(ymin = -Inf, ymax = Inf,
+                xmin = init, xmax = end),
+            fill = "grey", alpha = 0.5) +
+  
+  geom_line(data = df.basins.anomalies %>%
+              filter(basin == "Amazon",
+                     year < 2024),
+            aes(x = year + (month - 1/2)/12,
+                y = anomaly.m.rm,
+                group = model),
+            color = "darkgrey",
+            size = 0.1) +
+  
+  geom_line(data = df.basins.mod.anomalies %>%
+              filter(basin == "Amazon"),
+            aes(x = year + (month - 1/2)/12,
+                y = anomaly.m.rm,
+                group = model),
+            color = "darkgrey",
+            linetype = 2,
+            size = 0.1) +
+  
+  geom_point(data = df.MEM.anomalies %>%
+               filter(basin == "Amazon",
+                      year < 2024),
+             aes(x = year + (month - 1/2)/12,
+                 y = anomaly.m),
+             size = 0.25) +
+  
+  geom_line(data = df.MEM.anomalies %>%
+              filter(basin == "Amazon",
+                     year < 2024),
+            aes(x = year + (month - 1/2)/12,
+                y = anomaly.m.rm)) +
+  
+  geom_line(data = df.MEM.mod.anomalies %>%
+              filter(basin == "Amazon"),
+            aes(x = year + (month - 1/2)/12,
+                y = anomaly.m.rm),
+            linetype = 2) +
+  
+  geom_hline(yintercept = 0, color = "black",
+             linetype = 2) +
+  facet_wrap(~ variable,ncol = 1,
+             scales = "free") +
+  scale_x_continuous(limits = c(1990,2025)) +
+  
+  theme_bw() +
+  labs(x = "", y = "") +
+  guides(color = "none") +
+  theme(text = element_text(size = 20),
+        strip.background = element_blank(),
+        strip.text = element_blank())
+

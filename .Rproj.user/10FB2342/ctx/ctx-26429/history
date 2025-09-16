@@ -1,0 +1,512 @@
+facet_wrap(variable ~ basin,ncol = 2,
+scales = "free") +
+scale_x_continuous(limits = c(1990,2025)) +
+theme_bw() +
+labs(x = "", y = "") +
+guides(color = "none") +
+theme(text = element_text(size = 20),
+strip.background = element_blank(),
+strip.text = element_blank())
+ggplot() +
+geom_rect(data = Elninos,
+aes(ymin = -Inf, ymax = Inf,
+xmin = init, xmax = end),
+fill = "grey", alpha = 0.5) +
+geom_line(data = df.basins.mod.anomalies %>%
+filter(year > 2023 | (year == 2023 & month >= 12)),
+aes(x = year + (month - 1/2)/12,
+y = anomaly.m.rm,
+group = model),
+color = "darkgrey",
+linetype = 2,
+size = 0.1) +
+geom_line(data = df.basins.anomalies %>%
+filter(year < 2024),
+aes(x = year + (month - 1/2)/12,
+y = anomaly.m.rm,
+group = model),
+color = "darkgrey",
+size = 0.1) +
+geom_point(data = df.MEM.anomalies %>%
+filter(year < 2024),
+aes(x = year + (month - 1/2)/12,
+y = anomaly.m),
+size = 0.25) +
+geom_line(data = df.MEM.mod.anomalies,
+aes(x = year + (month - 1/2)/12,
+y = anomaly.m.rm),
+linetype = 1,
+color = "darkblue") +
+geom_line(data = df.MEM.anomalies %>%
+filter(year < 2024),
+aes(x = year + (month - 1/2)/12,
+y = anomaly.m.rm)) +
+geom_hline(yintercept = 0, color = "black",
+linetype = 2) +
+facet_wrap(variable ~ basin,ncol = 2,
+scales = "free") +
+scale_x_continuous(limits = c(1990,2025)) +
+theme_bw() +
+labs(x = "", y = "") +
+guides(color = "none") +
+theme(text = element_text(size = 20),
+strip.background = element_blank(),
+strip.text = element_blank())
+ggplot() +
+geom_rect(data = Elninos,
+aes(ymin = -Inf, ymax = Inf,
+xmin = init, xmax = end),
+fill = "grey", alpha = 0.5) +
+geom_line(data = df.basins.mod.anomalies %>%
+filter(year > 2023 | (year == 2023 & month >= 12)),
+aes(x = year + (month - 1/2)/12,
+y = anomaly.m.rm,
+group = model),
+color = "darkblue",
+linetype = 1,
+size = 0.1) +
+geom_line(data = df.basins.anomalies %>%
+filter(year < 2024),
+aes(x = year + (month - 1/2)/12,
+y = anomaly.m.rm,
+group = model),
+color = "darkgrey",
+size = 0.1) +
+geom_point(data = df.MEM.anomalies %>%
+filter(year < 2024),
+aes(x = year + (month - 1/2)/12,
+y = anomaly.m),
+size = 0.25) +
+geom_line(data = df.MEM.mod.anomalies,
+aes(x = year + (month - 1/2)/12,
+y = anomaly.m.rm),
+linetype = 1,
+color = "darkblue") +
+geom_line(data = df.MEM.anomalies %>%
+filter(year < 2024),
+aes(x = year + (month - 1/2)/12,
+y = anomaly.m.rm)) +
+geom_hline(yintercept = 0, color = "black",
+linetype = 2) +
+facet_wrap(variable ~ basin,ncol = 2,
+scales = "free") +
+scale_x_continuous(limits = c(1990,2025)) +
+theme_bw() +
+labs(x = "", y = "") +
+guides(color = "none") +
+theme(text = element_text(size = 20),
+strip.background = element_blank(),
+strip.text = element_blank())
+ggplot() +
+geom_rect(data = Elninos,
+aes(ymin = -Inf, ymax = Inf,
+xmin = init, xmax = end),
+fill = "grey", alpha = 0.5) +
+geom_line(data = df.basins.mod.anomalies %>%
+filter(basin = "Amazon",
+(year > 2023 | (year == 2023 & month >= 12))),
+aes(x = year + (month - 1/2)/12,
+y = anomaly.m.rm,
+group = model),
+color = "darkblue",
+linetype = 1,
+size = 0.1) +
+geom_line(data = df.basins.anomalies %>%
+filter(year < 2024,
+basin == "Amazon"),
+aes(x = year + (month - 1/2)/12,
+y = anomaly.m.rm,
+group = model),
+color = "darkgrey",
+size = 0.1) +
+geom_point(data = df.MEM.anomalies %>%
+filter(year < 2024,
+basin == "Amazon"),
+aes(x = year + (month - 1/2)/12,
+y = anomaly.m),
+size = 0.25) +
+geom_line(data = df.MEM.mod.anomalies %>%
+filter(basin == "Amazon"),
+aes(x = year + (month - 1/2)/12,
+y = anomaly.m.rm),
+linetype = 1,
+color = "darkblue") +
+geom_line(data = df.MEM.anomalies %>%
+filter(year < 2024,
+basin == "Amazon"),
+aes(x = year + (month - 1/2)/12,
+y = anomaly.m.rm)) +
+geom_hline(yintercept = 0, color = "black",
+linetype = 2) +
+facet_wrap(variable ~ basin,ncol = 2,
+scales = "free") +
+scale_x_continuous(limits = c(1990,2025)) +
+theme_bw() +
+labs(x = "", y = "") +
+guides(color = "none") +
+theme(text = element_text(size = 20),
+strip.background = element_blank(),
+strip.text = element_blank())
+ggplot() +
+geom_rect(data = Elninos,
+aes(ymin = -Inf, ymax = Inf,
+xmin = init, xmax = end),
+fill = "grey", alpha = 0.5) +
+geom_line(data = df.basins.mod.anomalies %>%
+filter(basin := "Amazon",
+(year > 2023 | (year == 2023 & month >= 12))),
+aes(x = year + (month - 1/2)/12,
+y = anomaly.m.rm,
+group = model),
+color = "darkblue",
+linetype = 1,
+size = 0.1) +
+geom_line(data = df.basins.anomalies %>%
+filter(year < 2024,
+basin == "Amazon"),
+aes(x = year + (month - 1/2)/12,
+y = anomaly.m.rm,
+group = model),
+color = "darkgrey",
+size = 0.1) +
+geom_point(data = df.MEM.anomalies %>%
+filter(year < 2024,
+basin == "Amazon"),
+aes(x = year + (month - 1/2)/12,
+y = anomaly.m),
+size = 0.25) +
+geom_line(data = df.MEM.mod.anomalies %>%
+filter(basin == "Amazon"),
+aes(x = year + (month - 1/2)/12,
+y = anomaly.m.rm),
+linetype = 1,
+color = "darkblue") +
+geom_line(data = df.MEM.anomalies %>%
+filter(year < 2024,
+basin == "Amazon"),
+aes(x = year + (month - 1/2)/12,
+y = anomaly.m.rm)) +
+geom_hline(yintercept = 0, color = "black",
+linetype = 2) +
+facet_wrap(variable ~ basin,ncol = 2,
+scales = "free") +
+scale_x_continuous(limits = c(1990,2025)) +
+theme_bw() +
+labs(x = "", y = "") +
+guides(color = "none") +
+theme(text = element_text(size = 20),
+strip.background = element_blank(),
+strip.text = element_blank())
+ggplot() +
+geom_rect(data = Elninos,
+aes(ymin = -Inf, ymax = Inf,
+xmin = init, xmax = end),
+fill = "grey", alpha = 0.5) +
+geom_line(data = df.basins.mod.anomalies %>%
+filter(basin == "Amazon",
+(year > 2023 | (year == 2023 & month >= 12))),
+aes(x = year + (month - 1/2)/12,
+y = anomaly.m.rm,
+group = model),
+color = "darkblue",
+linetype = 1,
+size = 0.1) +
+geom_line(data = df.basins.anomalies %>%
+filter(year < 2024,
+basin == "Amazon"),
+aes(x = year + (month - 1/2)/12,
+y = anomaly.m.rm,
+group = model),
+color = "darkgrey",
+size = 0.1) +
+geom_point(data = df.MEM.anomalies %>%
+filter(year < 2024,
+basin == "Amazon"),
+aes(x = year + (month - 1/2)/12,
+y = anomaly.m),
+size = 0.25) +
+geom_line(data = df.MEM.mod.anomalies %>%
+filter(basin == "Amazon"),
+aes(x = year + (month - 1/2)/12,
+y = anomaly.m.rm),
+linetype = 1,
+color = "darkblue") +
+geom_line(data = df.MEM.anomalies %>%
+filter(year < 2024,
+basin == "Amazon"),
+aes(x = year + (month - 1/2)/12,
+y = anomaly.m.rm)) +
+geom_hline(yintercept = 0, color = "black",
+linetype = 2) +
+facet_wrap(variable ~ basin,ncol = 2,
+scales = "free") +
+scale_x_continuous(limits = c(1990,2025)) +
+theme_bw() +
+labs(x = "", y = "") +
+guides(color = "none") +
+theme(text = element_text(size = 20),
+strip.background = element_blank(),
+strip.text = element_blank())
+ggplot() +
+geom_rect(data = Elninos,
+aes(ymin = -Inf, ymax = Inf,
+xmin = init, xmax = end),
+fill = "grey", alpha = 0.5) +
+geom_line(data = df.basins.mod.anomalies %>%
+filter(basin == "Amazon",
+(year > 2023 | (year == 2023 & month >= 12))),
+aes(x = year + (month - 1/2)/12,
+y = anomaly.m.rm,
+group = model),
+color = "darkblue",
+linetype = 1,
+size = 0.1) +
+geom_line(data = df.basins.anomalies %>%
+filter(year < 2024,
+basin == "Amazon"),
+aes(x = year + (month - 1/2)/12,
+y = anomaly.m.rm,
+group = model),
+color = "darkgrey",
+size = 0.1) +
+geom_point(data = df.MEM.anomalies %>%
+filter(year < 2024,
+basin == "Amazon"),
+aes(x = year + (month - 1/2)/12,
+y = anomaly.m),
+size = 0.25) +
+geom_line(data = df.MEM.mod.anomalies %>%
+filter(basin == "Amazon"),
+aes(x = year + (month - 1/2)/12,
+y = anomaly.m.rm),
+linetype = 1,
+color = "darkblue") +
+geom_line(data = df.MEM.anomalies %>%
+filter(year < 2024,
+basin == "Amazon"),
+aes(x = year + (month - 1/2)/12,
+y = anomaly.m.rm)) +
+geom_hline(yintercept = 0, color = "black",
+linetype = 2) +
+facet_wrap(variable ~ basin,ncol = 1,
+scales = "free") +
+scale_x_continuous(limits = c(1990,2025)) +
+theme_bw() +
+labs(x = "", y = "") +
+guides(color = "none") +
+theme(text = element_text(size = 20),
+strip.background = element_blank(),
+strip.text = element_blank())
+ggplot() +
+# geom_boxplot(data = data.Fluxsat %>%
+#                filter(year > 2022 & year < 2025) %>%
+#                mutate(variable = "gpp"),
+#              aes(x = (year + 1/2),group = year,
+#                  y = anomaly.m)) +
+geom_line(data = data.Fluxsat %>%
+filter(year >= 2020 & year < 2025) %>%
+mutate(variable = "gpp"),
+aes(x = year + (month - 1/2)/12,
+y = anomaly.m),
+color = "red") +
+geom_line(data = df.basins.anomalies %>%
+filter(year < 2024, year >= 2020),
+aes(x = year + (month - 1/2)/12,
+y = anomaly.m.rm,
+group = model),
+color = "darkgrey",
+size = 0.1) +
+geom_line(data = df.basins.mod.anomalies %>%
+filter(year >= 2020),
+aes(x = year + (month - 1/2)/12,
+y = anomaly.m.rm,
+group = model),
+color = "darkgrey",
+linetype = 2,
+size = 0.1) +
+geom_point(data = df.MEM.anomalies %>%
+filter(year < 2024, year >= 2020),
+aes(x = year + (month - 1/2)/12,
+y = anomaly.m),
+size = 0.25) +
+geom_line(data = df.MEM.anomalies %>%
+filter(year < 2024, year >= 2020),
+aes(x = year + (month - 1/2)/12,
+y = anomaly.m.rm)) +
+geom_line(data = df.MEM.mod.anomalies %>%
+filter(year >= 2020),
+aes(x = year + (month - 1/2)/12,
+y = anomaly.m.rm),
+linetype = 2) +
+geom_hline(yintercept = 0, color = "black",
+linetype = 2) +
+facet_wrap(variable ~ basin,ncol = 2,
+scales = "free") +
+# scale_x_continuous(limits = c(2020,2025)) +
+theme_bw() +
+labs(x = "", y = "") +
+guides(color = "none") +
+theme(text = element_text(size = 20),
+strip.background = element_blank(),
+strip.text = element_blank())
+ggplot() +
+geom_boxplot(data = data.Fluxsat %>%
+filter(year > 2022 & year < 2025) %>%
+mutate(variable = "gpp"),
+aes(x = (year + 1/2),group = year,
+y = anomaly.m)) +
+# geom_line(data = data.Fluxsat %>%
+#                filter(year >= 2020 & year < 2025) %>%
+#                mutate(variable = "gpp"),
+#              aes(x = year + (month - 1/2)/12,
+#                  y = anomaly.m),
+#           color = "red") +
+geom_line(data = df.basins.mod.anomalies %>%
+filter(year >= 2023),
+aes(x = year + (month - 1/2)/12,
+y = anomaly.m.rm,
+group = model),
+color = "darkblue",
+linetype = 2,
+size = 0.1) +
+geom_line(data = df.basins.anomalies %>%
+filter(year < 2024, year >= 2020),
+aes(x = year + (month - 1/2)/12,
+y = anomaly.m.rm,
+group = model),
+color = "darkgrey",
+size = 0.1) +
+geom_point(data = df.MEM.anomalies %>%
+filter(year < 2024, year >= 2020),
+aes(x = year + (month - 1/2)/12,
+y = anomaly.m),
+size = 0.25) +
+geom_line(data = df.MEM.mod.anomalies %>%
+filter(year >= 2020),
+aes(x = year + (month - 1/2)/12,
+y = anomaly.m.rm),
+linetype = 1,
+color = 'darkblue') +
+geom_line(data = df.MEM.anomalies %>%
+filter(year < 2024, year >= 2020),
+aes(x = year + (month - 1/2)/12,
+y = anomaly.m.rm)) +
+geom_hline(yintercept = 0, color = "black",
+linetype = 2) +
+facet_wrap(variable ~ basin,ncol = 2,
+scales = "free") +
+# scale_x_continuous(limits = c(2020,2025)) +
+theme_bw() +
+labs(x = "", y = "") +
+guides(color = "none") +
+theme(text = element_text(size = 20),
+strip.background = element_blank(),
+strip.text = element_blank())
+source("~/.active-rstudio-document", echo=TRUE)
+source("~/Documents/projects/Congo.vs.Amazon/scripts/Figure_seasonal_precip.R", echo=TRUE)
+df.numbers %>%
+filter(LC == 1) %>%
+pull(pre) %>%
+sum()
+df.numbers <- Clim.Mask.filled.all %>%
+filter(LC %in% c(1,2,3),
+model == "MEM",
+lat > 0) %>%
+group_by(LC,month) %>%
+summarise(tas = mean(tas,na.rm = TRUE) - 273.15,
+tasmin = mean(tasmin,na.rm = TRUE) - 273.15,
+tasmax = mean(tasmax,na.rm = TRUE) - 273.15,
+pre = mean(pre,na.rm = TRUE),
+.groups = "keep") %>%
+mutate(diff = tasmax-tasmin)
+df.numbers %>%
+filter(LC == 1) %>%
+pull(pre) %>%
+sum()
+df.numbers %>%
+filter(LC == 1) %>%
+pull(pre) %>%
+sum()
+G <- readRDS("./outputs/GridArea.RDS")
+G
+G <- readRDS("./outputs/GridArea.RDS") %>%
+filter(lon >= -15, lon <= 60,
+lat <= 10, lat >= -15)
+library(dplyr)
+G <- readRDS("./outputs/GridArea.RDS") %>%
+filter(lon >= -15, lon <= 60,
+lat <= 10, lat >= -15)
+G
+G %>%
+summarise(A = sum(area))
+G %>%
+summarise(A = sum(area)/1e12)
+G %>%
+summarise(A = sum(area)/1e12*land.frac)
+G %>%
+summarise(A = sum(area/1e12*land.frac))
+library(ncdf4)
+nc <- nc_open("/home/femeunier/Downloads/raw_data_land_area_land_area_0.50x0.50.nc")
+nc
+land.frac <- ncvar_get(nc,"data")
+land.frac
+summary(land.frac)
+summary(as.vector(land.frac))
+nc <- nc_open("/home/femeunier/Downloads/raw_data_land_area_land_area_0.50x0.50.nc")
+nc
+dim(nc)
+dim(land.frac)
+lats <- ncvar_get(nc,"latitude")
+lats
+lons <- ncvar_get(nc,"longitude")
+nc_close(nc)
+library(ggplot2)
+df <- melt(land.frac)
+library(reshape2)
+df <- melt(land.frac)
+df
+df <- melt(land.frac) %>%
+mutate(lon = lons[Var1],
+lat = lats[Var2])
+df
+df <- melt(land.frac) %>%
+mutate(lon = lons[Var1],
+lat = lats[Var2]) %>%
+dplyr::select(lon,lat,value)
+hist(df$value)
+df %>%
+filter(lat <= 10, lat >= -15,
+lon >= -15, lon <= 60)
+df %>%
+filter(lat <= 10, lat >= -15,
+lon >= -15, lon <= 60) %>%
+summarise(tot = sum(value)/1000/1000)
+df %>%
+filter(lat <= 10, lat >= -15,
+lon >= -15, lon <= 60) %>%
+summarise(tot = sum(value,na.rm = TRUE)/1000/1000)
+world <- rnaturalearth::ne_countries(scale = "medium", returnclass = "sf")
+ggplot() +
+geom_raster(data = df,
+aes(x = lon,
+y = lat,
+fill = value)) +
+geom_sf(data = world,fill = NA, color = "grey17") +
+theme_bw()
+e <- extent(-15,60,-15,10)
+library(raster)
+e <- extent(-15,60,-15,10)
+str_name<-'./data/C3S-LC-L4-LCCS-Map-300m-P1Y-2020-v2.1.1.tif'
+imported_raster=crop(raster(str_name),e)
+ter <- terra::rast(imported_raster)
+ter
+ter <- terra::cellSize(terra::rast(imported_raster))
+plot(ter)
+imported_raster
+ter[imported_raster == 210] <- NA
+imported_raster
+imported_raster_ter <- rast(imported_raster)
+imported_raster_ter <- terra::rast(imported_raster)
+imported_raster_ter
+ter[imported_raster == 210] <- NA
+imported_raster[imported_raster == 210] <- NA

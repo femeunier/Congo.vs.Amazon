@@ -1,0 +1,27 @@
+{
+    "id": "4AE42A22",
+    "path": "~/Documents/projects/Congo.vs.Amazon/R/load.everything.R",
+    "project_path": "R/load.everything.R",
+    "type": "r_source",
+    "hash": "2652602183",
+    "contents": "",
+    "dirty": false,
+    "created": 1758033385574.0,
+    "source_on_save": false,
+    "relative_order": 13,
+    "properties": {
+        "tempName": "Untitled4",
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "8,16",
+        "scrollLine": "0"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1758033393,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1758033393351,
+    "read_only": false,
+    "read_only_alternatives": []
+}

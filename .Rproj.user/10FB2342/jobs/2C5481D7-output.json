@@ -1,0 +1,7 @@
+[1,"Installing 'wesanderson' ...\n"]
+[2,"Installing package into ‘/home/femeunier/R/x86_64-pc-linux-gnu-library/4.5’\n(as ‘lib’ is unspecified)\n"]
+[2,"trying URL 'https://cloud.r-project.org/src/contrib/wesanderson_0.3.7.tar.gz'\n"]
+[2,"Content type 'application/x-gzip' length 6486 bytes\n==================================================\ndownloaded 6486 bytes\n\n* installing *source* package ‘wesanderson’ ...\n** this is package ‘wesanderson’ version ‘0.3.7’\n** package ‘wesanderson’ successfully unpacked and MD5 sums checked\n** using staged installation\n** R\n** data\n*** moving datasets to lazyload DB\n** byte-compile and prepare package for lazy loading\n"]
+[2,"** help\n*** installing help indices\n** building package indices\n"]
+[2,"** testing if installed package can be loaded from temporary location\n"]
+[2,"** testing if installed package can be loaded from final location\n** testing if installed package keeps a record of temporary installation path\n* DONE (wesanderson)\n\nThe downloaded source packages are in\n\t‘/tmp/RtmpJTazpD/downloaded_packages’\n\n\n✔ Package 'wesanderson' successfully installed.\n"]

@@ -1,0 +1,541 @@
+rm(list = ls())
+
+library(terra)
+library(dplyr)
+library(CausalAI)
+library(tidyr)
+library(stringr)
+library(ggplot2)
+library(caret)
+library(tibble)
+library(yardstick)
+library(xgboost)
+library(shapviz)
+
+# Load data
+
+x_var <- c("tmp","tmin","tmax","dswrf","vpd","co2anomaly","pre") 
+y_var <- "gppanomaly"
+fac.CC <- 86400*365
+year.min <- 1980
+year.max <- 2025
+lags <- 12
+initial <- 432
+horizon <- 12
+skip <- 11
+
+Grid <- expand.grid(
+  nrounds = c(200, 400, 800),
+  max_depth = c(3, 6, 9),
+  eta = c(0.03, 0.1),
+  gamma = c(0),
+  colsample_bytree = c(0.8),
+  min_child_weight = c(1),
+  subsample = c(0.8))
+
+# Grid = tidyr::crossing(
+#   eta_nrounds <- data.frame(
+#     eta     = c(0.10),
+#     nrounds = c(400,800)),
+#   max_depth        = c(6),     # keep trees fairly shallow for stability
+#   min_child_weight = c(1),     # stronger regularization options
+#   gamma            = c(0),        # penalize splits a bit in some configs
+#   subsample        = c(0.7),    # row subsampling
+#   colsample_bytree = c(0.7))     # feature subsampling
+
+climate.location <- "~/Downloads/anomaly."
+CC.location <- "~/Downloads/gppanomaly.CLASSIC"
+
+# To do
+# Resample climate/IFL directly into the process
+
+##################################################
+# Functions
+
+scale_z <- function(df, mu, sdv) {
+  as.data.frame(mapply(function(z, m, s) (z - m) / s, df, mu, sdv))
+}
+
+make_lags_by_group <- function(data,
+                               group     = c("lon","lat"),
+                               order_by  = c("year","month"),
+                               vars      = NULL,      # which columns to lag; default = all except keys
+                               max_lag   = 6,
+                               drop_rows_with_na_lags = TRUE,
+                               suffix    = "L") {
+  
+  stopifnot(all(group %in% names(data)))
+  stopifnot(all(order_by %in% names(data)))
+  
+  if (is.null(vars)) {
+    vars <- setdiff(names(data), c(group, order_by))
+  }
+  
+  # list of lag functions L1..Lk
+  lag_funs <- setNames(lapply(seq_len(max_lag),
+                              function(k) function(x) dplyr::lag(x, k)),
+                       paste0(suffix, seq_len(max_lag)))
+  
+  out <- data %>%
+    group_by(across(all_of(group))) %>%
+    arrange(across(all_of(order_by)), .by_group = TRUE) %>%
+    mutate(across(all_of(vars), lag_funs, .names = "{.col}_{.fn}")) %>%
+    ungroup()
+  
+  if (drop_rows_with_na_lags) {
+    created_cols <- as.vector(outer(vars, paste0("_", names(lag_funs)), paste0))
+    out <- tidyr::drop_na(out, dplyr::all_of(created_cols))
+  }
+  
+  out
+}
+
+tuneModel <- function(train, y, target,
+                      lags = 6, initial = 200, horizon = 12, skip = 6,
+                      grid = expand.grid(
+                        nrounds = c(200, 400, 800),
+                        max_depth = c(3, 6, 9),
+                        eta = c(0.03, 0.1),
+                        gamma = c(0),
+                        colsample_bytree = c(0.8),
+                        min_child_weight = c(1),
+                        subsample = c(0.8)
+                      )) {
+  
+  if (requireNamespace("future", quietly = TRUE)) {
+    Ncores <- as.numeric(future::availableCores())
+    future::plan("multisession", workers = Ncores)
+  } else {
+    Ncores <- 1
+  }
+  
+  # Coerce and clean
+  dfx <- if (is.matrix(train)) as.data.frame(train) else train
+  logical_cols <- vapply(dfx, is.logical, logical(1))
+  if (any(logical_cols)) dfx[logical_cols] <- lapply(dfx[logical_cols], as.integer)
+  
+  stopifnot("tnum" %in% names(dfx))  # must carry time key
+  x <- data.matrix(dfx); storage.mode(x) <- "double"
+  y <- as.numeric(y)
+  stopifnot(is.numeric(y), is.vector(y), length(y) == nrow(x))
+  if (any(!is.finite(x))) x[!is.finite(x)] <- NA_real_
+  if (any(!is.finite(y))) stop("y contains non-finite values")
+  
+  # --- Build rows-by-time using only times that actually exist in TRAIN ---
+  t_train <- as.integer(dfx[["tnum"]])
+  time_vals_eff <- sort(unique(t_train))
+  # factor with all levels keeps empty bins as integer(0) instead of NULL
+  f <- factor(match(t_train, time_vals_eff), levels = seq_along(time_vals_eff))
+  rows_by_time_idx <- split(seq_len(nrow(x)), f, drop = FALSE)
+  
+  # Create rolling time slices on the EFFECTIVE time axis
+  slices <- createTimeSlices(
+    1:length(time_vals_eff),
+    initialWindow = initial,
+    horizon       = horizon,
+    fixedWindow   = TRUE,
+    skip          = skip
+  )
+  
+  folds_train <- lapply(slices$train, function(ids)
+    unlist(rows_by_time_idx[ids], use.names = FALSE))
+  folds_test <- lapply(slices$test, function(ids)
+    unlist(rows_by_time_idx[ids], use.names = FALSE))
+  
+  # Drop folds with empty train or test (caret cannot handle them)
+  keep <- which(lengths(folds_train) > 0 & lengths(folds_test) > 0)
+  folds_train <- folds_train[keep]
+  folds_test  <- folds_test[keep]
+  
+  ctrl <- trainControl(
+    method          = "cv",
+    index           = folds_train,
+    indexOut        = folds_test,
+    summaryFunction = defaultSummary,
+    classProbs      = FALSE,
+    savePredictions = "final",
+    verboseIter     = TRUE,
+    allowParallel   = TRUE
+  )
+  
+  # Don’t pass tnum as a feature
+  x_nontime <- as.data.frame(x)[, setdiff(colnames(x), "tnum"), drop = FALSE]
+  
+  fit <- train(
+    x = x_nontime,
+    y = y,
+    method = "xgbTree",
+    trControl = ctrl,
+    tuneGrid = grid,
+    metric = "RMSE",
+    verbosity = 1,
+    nthread = Ncores
+  )
+  
+  future::plan("sequential")
+  fit
+}
+
+ #######################################################
+
+climate.list <- list()
+for (cvar in x_var){
+  climate.files <- list.files(path = dirname(climate.location),
+                              pattern = paste0("^",
+                                               basename(climate.location),cvar,
+                                               ".*.tif$"),
+                              full.names = TRUE,
+                              ignore.case = TRUE)
+  if (length(climate.files) == 0) next()
+  cclimate <- rast(climate.files)
+  climate.list[[cvar]] <-  cclimate
+}
+
+climate <- rast(climate.list)
+names(climate) <- tolower(sapply(strsplit(names(climate),"\\_"),"[[",1))
+climate.years <- as.numeric(unlist(lapply(strsplit(names(cclimate),"_|\\."),"[[",1)))
+climate.months <- as.numeric(unlist(lapply(strsplit(names(cclimate),"_|\\."),"[[",2)))
+
+
+cc.files <- list.files(path = dirname(CC.location),
+                       pattern = paste0("^",
+                                        basename(CC.location),
+                                        ".*.tif$"),
+                       full.names = TRUE)
+cc.rspld <- rast(cc.files)
+cnames <- names(cc.rspld)
+
+cc.years <- as.numeric(unlist(lapply(strsplit((basename(cnames)),"_|\\."),"[[",1)))
+cc.months <- as.numeric(unlist(lapply(strsplit((basename(cnames)),"_|\\."),"[[",2)))
+
+names(cc.rspld) <- rep(y_var,nlyr(cc.rspld))
+
+CO2 <- read.table("/home/femeunier/Documents/projects/CausalAI/data/global_co2_ann_1700_2024.txt") %>%
+  rename(year = V1,
+         CO2 = V2)
+
+monthly_df <- expand.grid(
+  month = 1:12,
+  year = CO2$year) %>%
+  arrange(year, month) %>%
+  mutate(year_decimal = year + (month - 0.5) / 12)
+
+f <- splinefun(CO2$year, CO2$CO2, method = "natural")
+monthly_df$CO2 <- f(monthly_df$year_decimal)
+
+monthly_df <- deseason_detrend(monthly_df, year.min = 1960, year.max = 1990) %>%
+  dplyr::select(year,month,CO2,co2detrended,co2anomaly)
+
+
+####################################################################################
+# Main loop
+
+IFL <- readRDS("/home/femeunier/Documents/projects/Congo.ED2/outputs/Amazon.coord.ILF.v13.RDS") %>%
+  filter(model == "ORCHIDEE") %>%
+  slice_sample(n = 100)
+
+# We exctract
+
+loc.coords <- terra::vect(IFL %>%
+                            dplyr::select(lon,lat),
+                          geom = c("lon", "lat"))
+
+temp.climate <- terra::extract(climate,
+                               loc.coords)
+
+temp.climate.df <- as.data.frame(t(temp.climate)[-1,])
+temp.climate.df[["variable"]] <- sapply(strsplit(rownames(temp.climate.df),"\\."),"[[",1)
+
+cdf.climate <- temp.climate.df %>%
+  pivot_longer(cols = -variable,
+               names_to = "site",
+               values_to = "value") %>%
+  mutate(site.num = as.numeric(str_extract(site, "\\d+"))) %>%
+  mutate(lon = crds(loc.coords)[site.num,"x"],
+         lat = crds(loc.coords)[site.num,"y"]) %>%
+  group_by(variable,lon,lat) %>%
+  mutate(timing = 1:n()) %>%
+  ungroup() %>%
+  mutate(year = climate.years[timing],
+         month = climate.months[timing]) %>%
+  dplyr::select(-c(site,site.num,timing)) 
+
+cdf.climate.wide <- cdf.climate %>%
+  pivot_wider(names_from = "variable",
+              values_from = "value")
+  
+cdf.climate.sum <- cdf.climate %>%
+  group_by(year,month,variable) %>%
+  summarise(m = mean(value),
+            .groups = "keep")
+
+
+ggplot(data = cdf.climate.sum) +
+  geom_line(aes(x = year + (month -1/2)/12,
+                y = m)) +
+  theme_bw() +
+  facet_wrap(~variable,scales = "free")
+  
+
+temp.cc <- terra::extract(cc.rspld,
+                          loc.coords)
+
+temp.cc.df <- as.data.frame(t(temp.cc)[-1,])
+temp.cc.df[["variable"]] <- sapply(strsplit(rownames(temp.cc.df),"\\."),"[[",1)
+
+cdf.cc <- temp.cc.df %>%
+  pivot_longer(cols = -variable,
+               names_to = "site",
+               values_to = "value") %>%
+  mutate(site.num = as.numeric(str_extract(site, "\\d+"))) %>%
+  mutate(lon = crds(loc.coords)[site.num,"x"],
+         lat = crds(loc.coords)[site.num,"y"]) %>%
+  group_by(variable,lon,lat) %>%
+  mutate(timing = 1:n()) %>%
+  ungroup() %>%
+  mutate(year = cc.years[timing],
+         month = cc.months[timing]) %>%
+  dplyr::select(-c(site,site.num,timing)) %>%
+  mutate(value = value*fac.CC)
+
+cdf.cc.wide <- cdf.cc %>%
+  pivot_wider(names_from = "variable",
+              values_from = "value")
+
+cdf.cc.sum <- cdf.cc %>%
+  group_by(year,month,variable) %>%
+  summarise(m = mean(value),
+            .groups = "keep")
+
+ggplot(data = cdf.cc.sum) +
+  geom_line(aes(x = year + (month -1/2)/12,
+                y = m)) +
+  theme_bw() +
+  facet_wrap(~variable,scales = "free")
+
+merged <- cdf.climate.wide %>%
+  left_join(cdf.cc.wide,
+            by = c("year","month","lon","lat")) %>%
+  left_join(monthly_df,
+            by = c("year","month")) %>%
+  dplyr::filter(year >= year.min,
+                year <= year.max) %>%
+  arrange(year, month, lon, lat) %>%
+  mutate(tnum = year*12L + month)  %>%
+  arrange(tnum,lon,lat)
+
+time_vals <- sort(unique(merged$tnum))
+
+all <-merged  %>%
+  dplyr::select(any_of(c("lon","lat","tnum",x_var,y_var))) 
+  
+df <- all %>%
+  dplyr::select(-any_of(c("lon_lat","year","month")))
+
+# smp_size <- floor(0.8 * length(time_vals))
+smp_size <- (length(time_vals) - 48)  # 4 final years = 1 buffer, 2 test, 1 projection
+
+train_ind1 <- df %>%
+  ungroup() %>%
+  mutate(id = 1:n()) %>%
+  group_by(lon,lat) %>%
+  slice_head(n = smp_size) %>%
+  pull(id) %>%
+  sort()
+
+mu  <- sapply(df[train_ind1, , drop = FALSE], mean,na.rm = TRUE); mu[c(y_var,"lon","lat","tnum")]  <- 0
+sdv <- sapply(df[train_ind1, , drop = FALSE], sd,na.rm = TRUE);   sdv[c(y_var,"lon","lat","tnum")] <- 1
+
+df <- scale_z(df, mu, sdv) %>%
+  arrange(tnum,lon,lat)
+
+dfl <- make_lags_by_group(df, 
+                          max_lag = lags,
+                          group = c("lon","lat"), order_by = "tnum",
+                          drop_rows_with_na_lags = FALSE) %>%
+  dplyr::select(-c(starts_with("lon_L"),
+                   starts_with("lat_L"),
+                   starts_with(paste0(y_var,"_L")),
+                   starts_with("tnum_L"))) %>%
+  arrange(tnum,lon,lat) 
+
+train_ind2 <-  dfl %>%
+                ungroup() %>%
+                mutate(id = 1:n()) %>%
+                group_by(lon,lat) %>%
+                slice_head(n = smp_size) %>%
+                na.omit() %>% 
+                pull(id) %>%
+                sort()
+
+train_na <- train_ind1[!(train_ind1 %in% train_ind2)]
+train_ind <- intersect(train_ind1,train_ind2)
+test_ind <- setdiff(1:nrow(df),train_ind1)
+test_ind <- test_ind[(length(loc.coords)*lags + 1):
+                       length(test_ind)] # Buffering to avoid data leakage
+
+df.train <- df[train_ind,c(x_var,y_var)]
+dfl.train <- as.matrix(dfl[train_ind,
+                           setdiff(colnames(dfl), y_var)])
+tnum.train <- df[train_ind,"tnum"]
+y.train <- as.matrix(dfl[train_ind, y_var])
+time_vals_train <- time_vals[1:smp_size]
+
+df.test <- df[test_ind,c(x_var,y_var)]
+dfl.test <- as.matrix(dfl[test_ind, setdiff(colnames(dfl), y_var)])
+y.test <- as.matrix(dfl[test_ind, y_var])
+
+fit <- tuneModel(train = data.matrix(dfl.train),
+                 y = as.numeric(y.train),
+                 grid = Grid,
+                 target = y_var,
+                 lags = lags,
+                 initial = initial, horizon = horizon, skip = skip)
+
+bestTune <- fit$bestTune
+bestModel <- fit$finalModel
+
+params <- list(
+  objective = "reg:squarederror",
+  eta = bestTune$eta, max_depth = bestTune$max_depth, gamma = bestTune$gamma,
+  colsample_bytree = bestTune$colsample_bytree, min_child_weight = bestTune$min_child_weight,
+  subsample = bestTune$subsample
+)
+
+features <- setdiff(colnames(dfl.train), "tnum")
+dtrain <- xgb.DMatrix(as.matrix(dfl.train[, features, drop = FALSE]),
+                      label = as.numeric(y.train))
+final_model <- xgb.train(params, dtrain, nrounds = bestTune$nrounds, verbose = 0)
+y.pred <- predict(final_model, as.matrix(dfl.test[, features, drop = FALSE]))
+
+RMSE <- caret::RMSE(y.test,y.pred)
+RSQ <- rsq_vec(as.vector(y.test), 
+               as.numeric(y.pred))
+MAE <- mean(abs(y.test - y.pred),na.rm = TRUE)
+
+XYtest <- df[test_ind,]
+XYtest[["pred"]] <- y.pred
+
+ggplot(data = XYtest %>%
+         dplyr::select(gppanomaly,pred) %>%
+         rename(obs = gppanomaly) %>%
+         pivot_longer(cols = -c(),
+                      values_to = "value",
+                      names_to = "source")) +
+  geom_density(aes(x = value,
+                   fill = source),
+               color = NA, alpha = 0.7) +
+  theme_bw()
+
+ggplot(data = XYtest,
+       aes(x = pred, y = gppanomaly)) +
+  geom_hex(aes(fill = stat(log10(count)))) +
+  stat_smooth(method = "lm",
+              color = "black") +
+  geom_abline(slope = 1, intercept = 0, linetype = 1) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  geom_vline(xintercept = 0, linetype = 2) +
+  theme_bw()
+
+world <- rnaturalearth::ne_countries(scale = "medium", returnclass = "sf")
+
+df2map <- XYtest %>%
+  filter(tnum == 2023*12L + 10) %>%
+  dplyr::select(c(lon,lat,gppanomaly,pred)) %>%
+  pivot_longer(cols = c(gppanomaly,pred),
+               names_to = "source",
+               values_to = "gppanomaly")
+
+ggplot() +
+  geom_raster(data = df2map,
+              aes(x = lon, y = lat,
+                  fill = (gppanomaly)),
+              color = "black") +
+  geom_sf(data = world,fill = NA, color = "grey") +
+  coord_sf(xlim = c(-85, -35), ylim = c(-1, 0.5)*23.25, expand = FALSE) +
+  scale_fill_gradient2(limits = c(-1.5,0.5),
+                       oob = scales::squish) +
+  facet_wrap(~source) +
+  theme_bw() +
+  theme(legend.position = "bottom")
+
+df2plot <- XYtest %>%
+  group_by(tnum) %>%
+  summarise(obs.m = mean(gppanomaly,na.rm = TRUE),
+            pred.m = mean(pred),
+            .groups = "keep")
+
+ggplot(data = df2plot,
+       aes(x = pred.m, y = obs.m)) +
+  geom_point() +
+  stat_smooth(method = "lm",
+              color = "black") +
+  geom_abline(slope = 1, intercept = 0, linetype = 1) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  geom_vline(xintercept = 0, linetype = 2) +
+  theme_bw()
+
+y.m <- df2plot %>%
+  pivot_longer(cols = c(obs.m,pred.m),
+               names_to = "source")
+
+ggplot(data = y.m %>%
+         ungroup()) +
+  geom_line(aes(x = tnum,
+                y = cumsum(value),
+                color = source)) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  theme_bw()
+
+ggplot(data = y.m %>%
+         ungroup()) +
+  geom_line(aes(x = tnum -2023*12,
+                y = (value),
+                color = source)) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  theme_bw()
+
+rsq_vec(as.numeric(df2plot$obs.m), 
+        as.vector(df2plot$pred.m)) 
+
+
+shap_test <- predict(
+  final_model,
+  newdata = as.matrix(dfl.test[, features, drop = FALSE]),
+  predcontrib = TRUE,          # SHAP values
+  approxcontrib = FALSE        # exact TreeSHAP (set TRUE if speed/memory needed)
+)
+
+colnames(shap_test) <- c(features, "BIAS")
+pred_from_shap <- rowSums(shap_test[, features, drop = FALSE]) + shap_test[, "BIAS"]
+
+imp_feat <- colMeans(abs(shap_test[, features, drop = FALSE]))
+imp_tbl  <- tibble(feature = names(imp_feat),
+                   mean_abs_shap = as.numeric(imp_feat)) %>%
+  arrange(desc(mean_abs_shap))
+
+# Bar of top features
+ggplot(imp_tbl %>% slice_max(mean_abs_shap, n = 20),
+       aes(x = reorder(feature, mean_abs_shap), y = mean_abs_shap)) +
+  geom_col() + coord_flip() + labs(x = NULL, y = "Mean |SHAP|")
+
+
+# If you want to aggregate across lags (e.g., tmp_L1..tmp_L12 → "tmp"):
+imp_var <- imp_tbl %>%
+  mutate(var = str_replace(feature, "_L\\d+$", "")) %>%
+  group_by(var) %>%
+  summarise(mean_abs_shap = sum(mean_abs_shap), .groups = "drop") %>%
+  arrange(desc(mean_abs_shap))
+
+# Aggregated by base variable (across lags)
+ggplot(imp_var,
+       aes(x = reorder(var, mean_abs_shap), y = mean_abs_shap)) +
+  geom_col() + coord_flip() + labs(x = NULL, y = "Mean |SHAP| (sum over lags)")
+
+
+X_test <- as.matrix(dfl.test[, features, drop = FALSE])
+sv <- shapviz(final_model, X_test, pred_contrib = TRUE)  # uses TreeSHAP
+
+sv_importance(sv)                # global importance
+sv_dependence(sv, "gppanomaly_L1", color_var = "gppanomaly_L1")  # dependence plot
+

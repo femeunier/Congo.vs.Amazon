@@ -1,0 +1,512 @@
+pair(variant) %and%
+pair(data_node) %and%
+pair(frequency) %and%
+pair(fields) %and%
+pair(format)
+# use `fileds` to directly subset data from responses
+if (type == "Dataset") {
+fields <- RES_DATASET
+} else if (type == "File") {
+fields <- RES_FILE
+}
+RES_DATASET <- c(
+"id",
+"mip_era", "activity_drs", "institution_id", "source_id",
+"experiment_id", "member_id", "table_id", "frequency", "grid_label",
+"version", "nominal_resolution", "variable_id", "variable_long_name",
+"variable_units", "data_node", "pid"
+)
+# use `fileds` to directly subset data from responses
+if (type == "Dataset") {
+fields <- RES_DATASET
+} else if (type == "File") {
+fields <- RES_FILE
+}
+q <- url_base %and%
+pair(offset) %and%
+pair(limit) %and%
+pair(type) %and%
+pair(replica) %and%
+pair(latest) %and%
+pair(project) %and%
+pair(activity) %and%
+pair(experiment) %and%
+pair(source) %and%
+pair(variable) %and%
+pair(resolution, FALSE) %and%
+pair(variant) %and%
+pair(data_node) %and%
+pair(frequency) %and%
+pair(fields) %and%
+pair(format)
+pair <- function(x, encode = TRUE) {
+checkmate::assert_vector(x, TRUE, null.ok = TRUE)
+# get name
+var <- deparse(substitute(x))
+# skip if empty
+if (is.null(x) || length(x) == 0) {
+return()
+}
+# get key name
+key <- dict[names(dict) == var]
+if (!length(key)) key <- var
+if (is.logical(x)) x <- tolower(x)
+if (encode) x <- epwshiftr:::query_param_encode(as.character(x))
+paste0(key, "=", paste0(x, collapse = epwshiftr:::query_param_encode(",")))
+}
+`%and%` <- function(lhs, rhs) {
+if (is.null(rhs)) {
+lhs
+} else if (lhs == url_base) {
+paste(lhs, rhs, sep = "", collapse = "")
+} else {
+paste(lhs, rhs, sep = "&", collapse = "&")
+}
+}
+project <- "CMIP6"
+format <- "application/solr+json"
+offset <- 0L
+resolution <- c(
+gsub(" ", "", resolution, fixed = TRUE),
+gsub(" ", "+", resolution, fixed = TRUE)
+)
+# use `fileds` to directly subset data from responses
+if (type == "Dataset") {
+fields <- RES_DATASET
+} else if (type == "File") {
+fields <- RES_FILE
+}
+q <- url_base %and%
+pair(offset) %and%
+pair(limit) %and%
+pair(type) %and%
+pair(replica) %and%
+pair(latest) %and%
+pair(project) %and%
+pair(activity) %and%
+pair(experiment) %and%
+pair(source) %and%
+pair(variable) %and%
+pair(resolution, FALSE) %and%
+pair(variant) %and%
+pair(data_node) %and%
+pair(frequency) %and%
+pair(fields) %and%
+pair(format)
+q <- tryCatch(jsonlite::read_json(q), warning = function(w) w, error = function(e) e)
+q
+url_base <- "https://esgf-node.llnl.gov/esg-search/search?"
+`%and%` <- function(lhs, rhs) {
+if (is.null(rhs)) {
+lhs
+} else if (lhs == url_base) {
+paste(lhs, rhs, sep = "", collapse = "")
+} else {
+paste(lhs, rhs, sep = "&", collapse = "&")
+}
+}
+project <- "CMIP6"
+format <- "application/solr+json"
+offset <- 0L
+resolution <- c(
+gsub(" ", "", resolution, fixed = TRUE),
+gsub(" ", "+", resolution, fixed = TRUE)
+)
+# use `fileds` to directly subset data from responses
+if (type == "Dataset") {
+fields <- RES_DATASET
+} else if (type == "File") {
+fields <- RES_FILE
+}
+q <- url_base %and%
+pair(offset) %and%
+pair(limit) %and%
+pair(type) %and%
+pair(replica) %and%
+pair(latest) %and%
+pair(project) %and%
+pair(activity) %and%
+pair(experiment) %and%
+pair(source) %and%
+pair(variable) %and%
+pair(resolution, FALSE) %and%
+pair(variant) %and%
+pair(data_node) %and%
+pair(frequency) %and%
+pair(fields) %and%
+pair(format)
+q <- tryCatch(jsonlite::read_json(q), warning = function(w) w, error = function(e) e)
+q
+url_base <- "https://esgf-node.cels.anl.gov/esg-search/search?"
+`%and%` <- function(lhs, rhs) {
+if (is.null(rhs)) {
+lhs
+} else if (lhs == url_base) {
+paste(lhs, rhs, sep = "", collapse = "")
+} else {
+paste(lhs, rhs, sep = "&", collapse = "&")
+}
+}
+project <- "CMIP6"
+format <- "application/solr+json"
+offset <- 0L
+resolution <- c(
+gsub(" ", "", resolution, fixed = TRUE),
+gsub(" ", "+", resolution, fixed = TRUE)
+)
+# use `fileds` to directly subset data from responses
+if (type == "Dataset") {
+fields <- RES_DATASET
+} else if (type == "File") {
+fields <- RES_FILE
+}
+q <- url_base %and%
+pair(offset) %and%
+pair(limit) %and%
+pair(type) %and%
+pair(replica) %and%
+pair(latest) %and%
+pair(project) %and%
+pair(activity) %and%
+pair(experiment) %and%
+pair(source) %and%
+pair(variable) %and%
+pair(resolution, FALSE) %and%
+pair(variant) %and%
+pair(data_node) %and%
+pair(frequency) %and%
+pair(fields) %and%
+pair(format)
+q <- tryCatch(jsonlite::read_json(q), warning = function(w) w, error = function(e) e)
+q
+url_base <- "https://esgf-node.ornl.gov/esg-search/search?"
+`%and%` <- function(lhs, rhs) {
+if (is.null(rhs)) {
+lhs
+} else if (lhs == url_base) {
+paste(lhs, rhs, sep = "", collapse = "")
+} else {
+paste(lhs, rhs, sep = "&", collapse = "&")
+}
+}
+project <- "CMIP6"
+format <- "application/solr+json"
+offset <- 0L
+resolution <- c(
+gsub(" ", "", resolution, fixed = TRUE),
+gsub(" ", "+", resolution, fixed = TRUE)
+)
+# use `fileds` to directly subset data from responses
+if (type == "Dataset") {
+fields <- RES_DATASET
+} else if (type == "File") {
+fields <- RES_FILE
+}
+q <- url_base %and%
+pair(offset) %and%
+pair(limit) %and%
+pair(type) %and%
+pair(replica) %and%
+pair(latest) %and%
+pair(project) %and%
+pair(activity) %and%
+pair(experiment) %and%
+pair(source) %and%
+pair(variable) %and%
+pair(resolution, FALSE) %and%
+pair(variant) %and%
+pair(data_node) %and%
+pair(frequency) %and%
+pair(fields) %and%
+pair(format)
+q <- tryCatch(jsonlite::read_json(q), warning = function(w) w, error = function(e) e)
+q
+# nocov start
+if (inherits(q, "warning") || inherits(q, "error")) {
+message("No matched data. Please check network connection and the availability of LLNL ESGF node.")
+dt <- data.table::data.table()
+# nocov end
+} else if (q$response$numFound == 0L) {
+message("No matched data. Please examine the actual response using 'attr(x, \"response\")'.")
+dt <- data.table::data.table()
+} else if (type == "Dataset") {
+dt <- extract_query_dataset(q)
+} else if (type == "File") {
+dt <- extract_query_file(q)
+}
+url_base <- "https://esgf-data.dkrz.de/esg-search/search?"
+dict <- c(
+activity = "activity_id",
+experiment = "experiment_id",
+source = "source_id",
+variable = "variable_id",
+resolution = "nominal_resolution",
+variant = "variant_label"
+)
+pair <- function(x, encode = TRUE) {
+checkmate::assert_vector(x, TRUE, null.ok = TRUE)
+# get name
+var <- deparse(substitute(x))
+# skip if empty
+if (is.null(x) || length(x) == 0) {
+return()
+}
+# get key name
+key <- dict[names(dict) == var]
+if (!length(key)) key <- var
+if (is.logical(x)) x <- tolower(x)
+if (encode) x <- epwshiftr:::query_param_encode(as.character(x))
+paste0(key, "=", paste0(x, collapse = epwshiftr:::query_param_encode(",")))
+}
+`%and%` <- function(lhs, rhs) {
+if (is.null(rhs)) {
+lhs
+} else if (lhs == url_base) {
+paste(lhs, rhs, sep = "", collapse = "")
+} else {
+paste(lhs, rhs, sep = "&", collapse = "&")
+}
+}
+project <- "CMIP6"
+format <- "application/solr+json"
+offset <- 0L
+resolution <- c(
+gsub(" ", "", resolution, fixed = TRUE),
+gsub(" ", "+", resolution, fixed = TRUE)
+)
+# use `fileds` to directly subset data from responses
+if (type == "Dataset") {
+fields <- RES_DATASET
+} else if (type == "File") {
+fields <- RES_FILE
+}
+q <- url_base %and%
+pair(offset) %and%
+pair(limit) %and%
+pair(type) %and%
+pair(replica) %and%
+pair(latest) %and%
+pair(project) %and%
+pair(activity) %and%
+pair(experiment) %and%
+pair(source) %and%
+pair(variable) %and%
+pair(resolution, FALSE) %and%
+pair(variant) %and%
+pair(data_node) %and%
+pair(frequency) %and%
+pair(fields) %and%
+pair(format)
+q <- tryCatch(jsonlite::read_json(q), warning = function(w) w, error = function(e) e)
+# nocov start
+if (inherits(q, "warning") || inherits(q, "error")) {
+message("No matched data. Please check network connection and the availability of LLNL ESGF node.")
+dt <- data.table::data.table()
+# nocov end
+} else if (q$response$numFound == 0L) {
+message("No matched data. Please examine the actual response using 'attr(x, \"response\")'.")
+dt <- data.table::data.table()
+} else if (type == "Dataset") {
+dt <- extract_query_dataset(q)
+} else if (type == "File") {
+dt <- extract_query_file(q)
+}
+q
+library(epwshiftr)
+esgf_query(
+activity = "ScenarioMIP",
+variable = "pr",
+frequency = "mon",
+experiment = "ssp534-over",
+source = NULL,
+variant = NULL,
+replica = FALSE,
+latest = TRUE,
+resolution = NULL,
+limit = 10000L,
+data_node = NULL)
+A <- esgf_query(
+activity = "ScenarioMIP",
+variable = "pr",
+frequency = "mon",
+experiment = "ssp534-over",
+source = NULL,
+variant = NULL,
+replica = FALSE,
+latest = TRUE,
+resolution = NULL,
+limit = 10000L,
+data_node = NULL)
+sort(unique(A$source_id))
+library(epwshiftr)
+A <- esgf_query(
+activity = "ScenarioMIP",
+variable = "pr",
+frequency = "mon",
+experiment = "ssp534-over",
+source = NULL,
+variant = NULL,
+replica = FALSE,
+latest = TRUE,
+resolution = NULL,
+limit = 10000L,
+data_node = NULL)
+sort(unique(A$source_id))
+library(epwshiftr)
+A <- esgf_query(
+activity = "ScenarioMIP",
+variable = "pr",
+frequency = "mon",
+experiment = "ssp534-over",
+source = NULL,
+variant = NULL,
+replica = FALSE,
+latest = TRUE,
+resolution = NULL,
+limit = 10000L,
+data_node = NULL)
+sort(unique(A$source_id))
+rm(list = ls())
+library(epwshiftr)
+library(dplyr)
+library(RNetCDF)
+library(stringr)
+library(ncdf4)
+library(ncdf4.helpers)
+library(reshape2)
+library(lubridate)
+library(CongoAS)
+library(epwshiftr)
+A <- esgf_query(
+activity = "ScenarioMIP",
+variable = "pr",
+frequency = "mon",
+experiment = "ssp534-over",
+source = NULL,
+variant = NULL,
+replica = FALSE,
+latest = TRUE,
+resolution = NULL,
+limit = 10000L,
+data_node = NULL)
+sort(unique(A$source_id))
+activity = "ScenarioMIP"
+variable = c("tas", "tasmax", "tasmin", "hurs", "hursmax", "hursmin", "pr", "rsds", "rlds", "psl", "sfcWind", "clt")
+frequency = "day"
+experiment = c("ssp126", "ssp245", "ssp370", "ssp585")
+source = c(
+"AWI-CM-1-1-MR", "BCC-CSM2-MR", "CESM2", "CESM2-WACCM",
+"EC-Earth3", "EC-Earth3-Veg", "GFDL-ESM4", "INM-CM4-8",
+"INM-CM5-0", "MPI-ESM1-2-HR", "MRI-ESM2-0")
+variant = "r1i1p1f1"
+replica = FALSE
+latest = TRUE
+resolution = c("100 km", "50 km")
+type = "File"
+limit = 10000L
+data_node = NULL
+frequency = "day"
+q <- paste0(url_base,
+"offset=0&limit=10000&type=File&replica=false&latest=true&project=CMIP6&activity_id=ScenarioMIP&experiment_id=ssp126%2Cssp245%2Cssp370%2Cssp585&source_id=AWI-CM-1-1-MR%2CBCC-CSM2-MR%2CCESM2%2CCESM2-WACCM%2CEC-Earth3%2CEC-Earth3-Veg%2CGFDL-ESM4%2CINM-CM4-8%2CINM-CM5-0%2CMPI-ESM1-2-HR%2CMRI-ESM2-0&variable_id=tas%2Ctasmax%2Ctasmin%2Churs%2Chursmax%2Chursmin%2Cpr%2Crsds%2Crlds%2Cpsl%2CsfcWind%2Cclt&nominal_resolution=100km%2C50km%2C100+km%2C50+km&variant_label=r1i1p1f1&frequency=day&fields=id%2Cdataset_id%2Cmip_era%2Cactivity_drs%2Cinstitution_id%2Csource_id%2Cexperiment_id%2Cmember_id%2Ctable_id%2Cfrequency%2Cgrid_label%2Cversion%2Cnominal_resolution%2Cvariable_id%2Cvariable_long_name%2Cvariable_units%2Cdata_node%2Csize%2Curl%2Ctracking_id&format=application%2Fsolr%2Bjson")
+url_base <- "https://esgf-node.llnl.gov/esg-search/search?"
+q <- paste0(url_base,
+"offset=0&limit=10000&type=File&replica=false&latest=true&project=CMIP6&activity_id=ScenarioMIP&experiment_id=ssp126%2Cssp245%2Cssp370%2Cssp585&source_id=AWI-CM-1-1-MR%2CBCC-CSM2-MR%2CCESM2%2CCESM2-WACCM%2CEC-Earth3%2CEC-Earth3-Veg%2CGFDL-ESM4%2CINM-CM4-8%2CINM-CM5-0%2CMPI-ESM1-2-HR%2CMRI-ESM2-0&variable_id=tas%2Ctasmax%2Ctasmin%2Churs%2Chursmax%2Chursmin%2Cpr%2Crsds%2Crlds%2Cpsl%2CsfcWind%2Cclt&nominal_resolution=100km%2C50km%2C100+km%2C50+km&variant_label=r1i1p1f1&frequency=day&fields=id%2Cdataset_id%2Cmip_era%2Cactivity_drs%2Cinstitution_id%2Csource_id%2Cexperiment_id%2Cmember_id%2Ctable_id%2Cfrequency%2Cgrid_label%2Cversion%2Cnominal_resolution%2Cvariable_id%2Cvariable_long_name%2Cvariable_units%2Cdata_node%2Csize%2Curl%2Ctracking_id&format=application%2Fsolr%2Bjson")
+r <- tryCatch(jsonlite::read_json(q), warning = function(w) w, error = function(e) e)
+r <- tryCatch(jsonlite::read_json(q), warning = function(w) w, error = function(e) e)
+r
+A <- esgf_query(
+activity = "ScenarioMIP",
+variable = "pr",
+frequency = "mon",
+experiment = "ssp534-over",
+source = NULL,
+variant = NULL,
+replica = FALSE,
+latest = TRUE,
+resolution = NULL,
+limit = 10000L,
+data_node = NULL)
+library(epwshiftr)
+activity = "ScenarioMIP"
+variable = c("tas", "tasmax", "tasmin", "hurs", "hursmax", "hursmin", "pr", "rsds", "rlds", "psl", "sfcWind", "clt")
+frequency = "day"
+experiment = c("ssp126", "ssp245", "ssp370", "ssp585")
+source = c(
+"AWI-CM-1-1-MR", "BCC-CSM2-MR", "CESM2", "CESM2-WACCM",
+"EC-Earth3", "EC-Earth3-Veg", "GFDL-ESM4", "INM-CM4-8",
+"INM-CM5-0", "MPI-ESM1-2-HR", "MRI-ESM2-0")
+variant = "r1i1p1f1"
+replica = FALSE
+latest = TRUE
+resolution = c("100 km", "50 km")
+type = "File"
+limit = 10000L
+data_node = NULL
+A <- esgf_query(
+activity = "ScenarioMIP",
+variable = "pr",
+frequency = "mon",
+experiment = "ssp534-over",
+source = NULL,
+variant = NULL,
+replica = FALSE,
+latest = TRUE,
+resolution = NULL,
+limit = 10000L,
+data_node = NULL)
+sort(unique(A$source_id))
+variants <- c("r1i1p1f1")
+init.years
+l.files
+library(epwshiftr)
+A <- esgf_query(
+activity = "ScenarioMIP",
+variable = "pr",
+frequency = "mon",
+experiment = "ssp534-over",
+source = NULL,
+variant = NULL,
+replica = FALSE,
+latest = TRUE,
+resolution = NULL,
+limit = 10000L,
+data_node = NULL)
+sort(unique(A$source_id))
+B <- esgf_query_all(
+activity = "ScenarioMIP",
+variable = "pr",
+frequency = "mon",
+experiment = "ssp534-over",
+source = NULL,
+variant = NULL,
+replica = FALSE,
+latest = TRUE,
+resolution = NULL,
+limit = 10000L,
+data_node = NULL)
+library(epwshiftr)
+A <- esgf_query(
+activity = "ScenarioMIP",
+variable = "pr",
+frequency = "mon",
+experiment = "ssp534-over",
+source = NULL,
+variant = NULL,
+replica = FALSE,
+latest = TRUE,
+resolution = NULL,
+limit = 10000L,
+data_node = NULL)
+sort(unique(A$source_id))
+B <- esgf_query_all(
+activity = "ScenarioMIP",
+variable = "pr",
+frequency = "mon",
+experiment = "ssp534-over",
+source = NULL,
+variant = NULL,
+replica = FALSE,
+latest = TRUE,
+resolution = NULL,
+limit = 10000L,
+data_node = NULL)
