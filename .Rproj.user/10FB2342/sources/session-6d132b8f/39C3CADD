@@ -1,27 +1,27 @@
 {
     "id": "39C3CADD",
-    "path": null,
-    "project_path": null,
+    "path": "~/Documents/projects/Congo.vs.Amazon/scripts/Caret.Grid.R",
+    "project_path": "scripts/Caret.Grid.R",
     "type": "r_source",
     "hash": "0",
     "contents": "",
-    "dirty": true,
+    "dirty": false,
     "created": 1758034018321.0,
     "source_on_save": false,
-    "relative_order": 18,
+    "relative_order": 12,
     "properties": {
         "tempName": "Untitled3",
         "source_window_id": "",
         "Source": "Source",
-        "cursorPosition": "13,0",
-        "scrollLine": "0"
+        "cursorPosition": "78,33",
+        "scrollLine": "72"
     },
     "folds": "",
-    "lastKnownWriteTime": 1758033974,
-    "encoding": "",
+    "lastKnownWriteTime": 1758035528,
+    "encoding": "UTF-8",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1758034040914,
+    "last_content_update": 1758035528579,
     "read_only": false,
     "read_only_alternatives": []
 }

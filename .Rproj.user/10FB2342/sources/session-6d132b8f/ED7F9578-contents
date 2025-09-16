@@ -8,7 +8,10 @@ write.Caret.script <- function(dir.name,
   write("",file=file,append=TRUE)
   write("Congo.vs.Amazon::load.everything()",file=file,append=TRUE)
   write("",file=file,append=TRUE)
-  write("run.Caret.IFL(config.file)",file=file,append=TRUE)
+
+  write(paste0("run.Caret.IFL(",
+               config.file,
+               ")"),file=file,append=TRUE)
 
 
 }
