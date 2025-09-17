@@ -1,4 +1,5 @@
-run.Caret.IFL <- function(config.file){
+run.Caret.IFL <- function(config.file,
+                          shap.test = TRUE){
 
   # x_var <- c("tmp","tmin","tmax","dswrf","vpd","co2anomaly","pre")
   # y_var <- "gppanomaly"
@@ -245,12 +246,31 @@ run.Caret.IFL <- function(config.file){
   final_model <- xgb.train(params, dtrain, nrounds = bestTune$nrounds, verbose = 0)
 
 
+  if (shap.test){
+    shap_test <- predict(
+      final_model,
+      newdata = as.matrix(dfl.test[, features, drop = FALSE]),
+      predcontrib = TRUE,          # SHAP values
+      approxcontrib = FALSE        # exact TreeSHAP (set TRUE if speed/memory needed)
+    )
+
+    X_test <- as.matrix(dfl.test[, features, drop = FALSE])
+    sv <- shapviz(final_model, X_test, pred_contrib = TRUE)  # uses TreeSHAP
+
+  } else {
+    shap_test <- sv <- NULL
+  }
+
+
   saveRDS(list(final_model = final_model,
+               df = all,
                dfl.train = dfl.train,
                y.train = y.train,
                train_ind = train_ind,
                dfl.test = dfl.test,
-               y.test = y.test
-               test_ind = test_ind),
+               y.test = y.test,
+               test_ind = test_ind,
+               shap_test = shap_test,
+               sv = sv),
           paste0(dest.dir,"_final_model.RDS"))
 }
