@@ -53,7 +53,7 @@ for (cmodel in models){
   model.config <- main.config
   model.config[["CC.location"]] <- paste0("/data/gent/vo/000/gvo00074/felicien/R/outputs/DGVM/",cmodel,"/",main.config[["y_var"]],".",cmodel)
   model.config[["IFL"]] <- readRDS("./outputs/Amazon.coord.ILF.v13.RDS") %>%
-    filter(model == cmodel)
+    filter(model == "ORCHIDEE")
   model.config[["dest.dir"]] <- file.path(dir.name,cmodel,cmodel)
 
 
@@ -69,7 +69,7 @@ for (cmodel in models){
 
   cjobname <- paste0("job_",cmodel,".pbs")
   ED2scenarios::write_jobR(file = file.path(dir.name,cmodel,cjobname),
-                           nodes = 1,ppn = 16,mem = 100,walltime = 12,
+                           nodes = 1,ppn = 16,mem = 100,walltime = 3,
                            prerun = "ml purge ; ml R-bundle-Bioconductor/3.20-foss-2024a-R-4.4.2",
                            CD = file.path(dir.name,cmodel),
                            Rscript = paste0("Rscript.R"))

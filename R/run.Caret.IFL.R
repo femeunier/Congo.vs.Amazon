@@ -85,7 +85,7 @@ run.Caret.IFL <- function(config.file){
   monthly_df <- deseason_detrend(monthly_df, year.min = 1960, year.max = 1990) %>%
     dplyr::select(year,month,CO2,co2detrended,co2anomaly)
 
-  # We exctract
+  # We extract
 
   loc.coords <- terra::vect(IFL %>%
                               dplyr::select(lon,lat),
@@ -246,6 +246,11 @@ run.Caret.IFL <- function(config.file){
 
 
   saveRDS(list(final_model = final_model,
-               dfl.test = dfl.test),
+               dfl.train = dfl.train,
+               y.train = y.train,
+               train_ind = train_ind,
+               dfl.test = dfl.test,
+               y.test = y.test
+               test_ind = test_ind),
           paste0(dest.dir,"_final_model.RDS"))
 }
