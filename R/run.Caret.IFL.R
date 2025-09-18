@@ -35,11 +35,18 @@ run.Caret.IFL <- function(config.file,
   Ntest.month <- config[["Ntest.month"]]
 
   dest.dir <- config[["dest.dir"]]
-  include.past.lag <- config[["include.past.lag"]]
 
+  include.past.lag <- config[["include.past.lag"]]
   if (is.null(include.past.lag)){
     include.past.lag <- FALSE
   }
+
+
+  suffix <- config[["suffix"]]
+  if (is.null(suffix)){
+    suffix <- ""
+  }
+
 
 
   #######################################################
@@ -292,5 +299,5 @@ run.Caret.IFL <- function(config.file,
                test_ind = test_ind,
                shap_test = shap_test,
                sv = sv),
-          paste0(dest.dir,"_final_model.RDS"))
+          paste0(dest.dir,"_",suffix,".RDS"))
 }
