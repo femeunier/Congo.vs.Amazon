@@ -18,10 +18,12 @@ dir.name <- "/kyukon/data/gent/vo/000/gvo00074/felicien/R/outputs/GPP_caret/"
 df.QoF <- df.test <- df.SHAP <-
   data.frame()
 
+suffix <- "Lag"
+
 for (cmodel in models){
   cdir <- file.path(dir.name,cmodel)
 
-  cmodel.op <- file.path(cdir,paste0(cmodel,"_final_model.RDS"))
+  cmodel.op <- file.path(cdir,paste0(cmodel,"_",suffix,".RDS"))
 
   if (!file.exists(cmodel.op)) next
 
@@ -33,7 +35,7 @@ for (cmodel in models){
   dfl.test <- cop[["dfl.test"]]
   y.test <- cop[["y.test"]]
   test_ind <- cop[["test_ind"]]
-  df <- cop[["df"]]
+  dfl <- cop[["dfl"]]
 
   features <- setdiff(colnames(dfl.test), "tnum")
   y.pred <- predict(final_model,
@@ -44,7 +46,7 @@ for (cmodel in models){
                  as.numeric(y.pred))
   MAE <- mean(abs(y.test - y.pred),na.rm = TRUE)
 
-  XYtest <- df[test_ind,]
+  XYtest <- dfl[test_ind,]
   XYtest[["pred"]] <- y.pred
 
 
@@ -105,12 +107,14 @@ for (cmodel in models){
 
 }
 
+
+
 saveRDS(df.QoF,
-        "./outputs/QoF.allModels.Caret.RDS")
+        paste0("./outputs/QoF.allModels.Caret_",suffix,".RDS"))
 saveRDS(df.test,
-        "./outputs/Alltests.allModels.Caret.RDS")
+        paste0("./outputs/Alltests.allModels.Caret_",suffix,".RDS"))
 saveRDS(df.SHAP,
-        "./outputs/AllSHAPS.allModels.Caret.RDS")
+        paste0("./outputs/AllSHAPS.allModels.Caret_",suffix,".RDS"))
 
 # scp /home/femeunier/Documents/projects/Congo.vs.Amazon/scripts/Analyze.Caret.Grid.R hpc:/kyukon/data/gent/vo/000/gvo00074/felicien/R/
 

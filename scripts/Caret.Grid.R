@@ -34,7 +34,9 @@ main.config <- list(
     min_child_weight = c(1),
     subsample = c(0.8)),
 
-  include.past.lag = TRUE,
+  include.past.lag = FALSE,
+
+  suffix = "noLag",
 
   climate.location = "/data/gent/vo/000/gvo00074/felicien/R/outputs/ERA5/anomaly.",
   Ntest.month = 48)
@@ -44,6 +46,7 @@ dir.name <- "/kyukon/data/gent/vo/000/gvo00074/felicien/R/outputs/GPP_caret/"
 dir.create(dir.name,showWarnings = FALSE)
 
 
+suffix <- main.config[["suffix"]]
 list_dir <- list() ; job.names <- c()
 
 for (cmodel in models){
@@ -60,13 +63,13 @@ for (cmodel in models){
 
 
   modelconfig.file <- file.path(dir.name,cmodel,
-                                paste0("config.",cmodel,".RDS"))
+                                paste0("config.",cmodel,".",suffix,".RDS"))
 
   saveRDS(model.config,
           modelconfig.file)
 
   write.Caret.script(file.path(dir.name, cmodel),
-                     paste0("Rscript.R"),
+                     paste0("Rscript.",suffix,".R"),
                      modelconfig.file)
 
   cjobname <- paste0("job_",cmodel,".pbs")
@@ -74,7 +77,7 @@ for (cmodel in models){
                            nodes = 1,ppn = 16,mem = 100,walltime = 3,
                            prerun = "ml purge ; ml R-bundle-Bioconductor/3.20-foss-2024a-R-4.4.2",
                            CD = file.path(dir.name,cmodel),
-                           Rscript = paste0("Rscript.R"))
+                           Rscript = paste0("Rscript.",suffix,".R"))
   job.names <- c(job.names,
                  cjobname)
   list_dir[[cmodel]] = file.path(dir.name,

@@ -47,8 +47,6 @@ run.Caret.IFL <- function(config.file,
     suffix <- ""
   }
 
-
-
   #######################################################
 
   climate.list <- list()
@@ -290,7 +288,7 @@ run.Caret.IFL <- function(config.file,
 
 
   saveRDS(list(final_model = final_model,
-               df = all,
+               dfl = dfl,
                dfl.train = dfl.train,
                y.train = y.train,
                train_ind = train_ind,
