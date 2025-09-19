@@ -41,32 +41,36 @@ run.Caret.IFL <- function(config.file,
     include.past.lag <- FALSE
   }
 
-
   suffix <- config[["suffix"]]
   if (is.null(suffix)){
     suffix <- ""
   }
 
-  #######################################################
+  ##############################################################################
 
   climate.list <- list()
-  for (cvar in x_var){
-    climate.files <- list.files(path = dirname(climate.location),
-                                pattern = paste0("^",
-                                                 basename(climate.location),cvar,
-                                                 ".*.tif$"),
-                                full.names = TRUE,
-                                ignore.case = TRUE)
-    if (length(climate.files) == 0) next()
-    cclimate <- rast(climate.files)
-    climate.list[[cvar]] <-  cclimate
+  all_x_var <- c("co2anomaly","CO2")
+  for (cclimate.location in climate.location){
+
+    all_x_var <- c(all_x_var,
+                   paste0(basename(cclimate.location),x_var))
+    for (cvar in x_var){
+      climate.files <- list.files(path = dirname(cclimate.location),
+                                  pattern = paste0("^",
+                                                   basename(cclimate.location),cvar,
+                                                   ".*.tif$"),
+                                  full.names = TRUE,
+                                  ignore.case = TRUE)
+      if (length(climate.files) == 0) next()
+      cclimate <- rast(climate.files)
+      climate.list[[paste0(basename(cclimate.location),cvar)]] <-  cclimate
+    }
   }
 
   climate <- rast(climate.list)
   names(climate) <- tolower(sapply(strsplit(names(climate),"\\_"),"[[",1))
   climate.years <- as.numeric(unlist(lapply(strsplit(names(cclimate),"_|\\."),"[[",1)))
   climate.months <- as.numeric(unlist(lapply(strsplit(names(cclimate),"_|\\."),"[[",2)))
-
 
   cc.files <- list.files(path = dirname(CC.location),
                          pattern = paste0("^",
@@ -174,79 +178,87 @@ run.Caret.IFL <- function(config.file,
     arrange(tnum,lon,lat)
 
   time_vals <- sort(unique(merged$tnum))
-
-  all <-merged  %>%
-    dplyr::select(any_of(c("lon","lat","tnum",x_var,y_var)))
+  all <- merged  %>%
+    dplyr::select(any_of(c("lon","lat","tnum",all_x_var,y_var)))
 
   df <- all %>%
-    dplyr::select(-any_of(c("lon_lat","year","month")))
+    dplyr::select(-any_of(c("lon_lat","year","month"))) %>%
+    arrange(tnum,lon,lat)
 
-  # smp_size <- floor(0.8 * length(time_vals))
-  smp_size <- (length(time_vals) - Ntest.month)  # 4 final years = 1 buffer, 2 test, 1 projection
+  all.tnum <- df[["tnum"]]
 
-  train_ind1 <- df %>%
-    ungroup() %>%
-    mutate(id = 1:n()) %>%
-    group_by(lon,lat) %>%
-    slice_head(n = smp_size) %>%
-    pull(id) %>%
-    sort()
+  pos <- sample((lags+1):(length(time_vals)-(Ntest.month-1)),1)
+  pos <- 505
+  all.test.pos <- pos:(pos+Ntest.month-1)
+  test_ind <- which(all.tnum %in% time_vals[all.test.pos])
+  all.buffer.pos <- c((pos-lags):(pos-1),
+                      (max(all.test.pos)+1):(max(all.test.pos)+lags))
+  all.train.pos <- setdiff(1:length(unique(time_vals)),
+                           c(all.test.pos,all.buffer.pos))  # 4 final years = 1 buffer, 2 test, 1 projection
+  train_ind <- which(all.tnum %in% time_vals[all.train.pos])
+
+  mu  <- sapply(df[train_ind, , drop = FALSE], mean,na.rm = TRUE); mu[c(y_var,"lon","lat","tnum")]  <- 0
+  sdv <- sapply(df[train_ind, , drop = FALSE], sd,na.rm = TRUE);   sdv[c(y_var,"lon","lat","tnum")] <- 1
+
+  # df <- scale_z(df, mu, sdv) %>%
+  #   arrange(tnum,lon,lat)
+
 
   mu  <- sapply(df[train_ind1, , drop = FALSE], mean,na.rm = TRUE); mu[c(y_var,"lon","lat","tnum")]  <- 0
   sdv <- sapply(df[train_ind1, , drop = FALSE], sd,na.rm = TRUE);   sdv[c(y_var,"lon","lat","tnum")] <- 1
 
-  df <- scale_z(df, mu, sdv) %>%
-    arrange(tnum,lon,lat)
+  # df <- scale_z(df, mu, sdv) %>%
+  #   arrange(tnum,lon,lat)
 
   if (include.past.lag){
-    dfl <- make_lags_by_group(df,
-                              max_lag = lags,
-                              group = c("lon","lat"), order_by = "tnum",
-                              drop_rows_with_na_lags = FALSE) %>%
+    dfl.all <- make_lags_by_group(df,
+                                  max_lag = lags,
+                                  group = c("lon","lat"), order_by = "tnum",
+                                  drop_rows_with_na_lags = FALSE) %>%
       dplyr::select(-c(starts_with("lon_L"),
                        starts_with("lat_L"),
-                       # starts_with(paste0(y_var,"_L")),
                        starts_with("tnum_L"))) %>%
-      arrange(tnum,lon,lat)
+      arrange(tnum,lon,lat) %>%
+      mutate(type = case_when(
+        tnum %in% time_vals[1:lags] ~ "initial",
+        tnum %in% time_vals[all.train.pos] ~ "train",
+        tnum %in% time_vals[all.test.pos] ~ "test",
+        TRUE ~ "buffer")) %>%
+      filter(type != "initial")
+
   } else{
-    dfl <- make_lags_by_group(df,
-                              max_lag = lags,
-                              group = c("lon","lat"), order_by = "tnum",
-                              drop_rows_with_na_lags = FALSE) %>%
+    dfl.all <- make_lags_by_group(df,
+                                  max_lag = lags,
+                                  group = c("lon","lat"), order_by = "tnum",
+                                  drop_rows_with_na_lags = FALSE) %>%
       dplyr::select(-c(starts_with("lon_L"),
                        starts_with("lat_L"),
                        starts_with(paste0(y_var,"_L")),
                        starts_with("tnum_L"))) %>%
-      arrange(tnum,lon,lat)
+      arrange(tnum,lon,lat) %>%
+      mutate(type = case_when(
+        tnum %in% time_vals[1:lags] ~ "initial",
+        tnum %in% time_vals[all.train.pos] ~ "train",
+        tnum %in% time_vals[all.test.pos] ~ "test",
+        TRUE ~ "buffer")) %>%
+      filter(type != "initial")
+
   }
 
+  dfl <- dfl.all %>%
+    na.omit()
+
+  dfl.train <- as.matrix((dfl %>%
+                            dplyr::filter(type == "train"))[,setdiff(colnames(dfl), c("type",y_var))] )
+  y.train <- as.matrix((dfl %>%
+                          dplyr::filter(type == "train"))[,y_var] )
 
 
-  train_ind2 <-  dfl %>%
-    ungroup() %>%
-    mutate(id = 1:n()) %>%
-    group_by(lon,lat) %>%
-    slice_head(n = smp_size) %>%
-    na.omit() %>%
-    pull(id) %>%
-    sort()
+  dfl.test <- as.matrix((dfl %>%
+                           dplyr::filter(type == "test"))[,setdiff(colnames(dfl), c("type",y_var))] )
 
-  train_na <- train_ind1[!(train_ind1 %in% train_ind2)]
-  train_ind <- intersect(train_ind1,train_ind2)
-  test_ind <- setdiff(1:nrow(df),train_ind1)
-  test_ind <- test_ind[(length(loc.coords)*lags + 1):
-                         length(test_ind)] # Buffering to avoid data leakage
-
-  df.train <- df[train_ind,c(x_var,y_var)]
-  dfl.train <- as.matrix(dfl[train_ind,
-                             setdiff(colnames(dfl), y_var)])
-  tnum.train <- df[train_ind,"tnum"]
-  y.train <- as.matrix(dfl[train_ind, y_var])
-  time_vals_train <- time_vals[1:smp_size]
-
-  df.test <- df[test_ind,c(x_var,y_var)]
-  dfl.test <- as.matrix(dfl[test_ind, setdiff(colnames(dfl), y_var)])
-  y.test <- as.matrix(dfl[test_ind, y_var])
+  y.test <- as.matrix((dfl %>%
+                         dplyr::filter(type == "test"))[,y_var] )
 
   fit <- tuneModel(train = data.matrix(dfl.train),
                    y = as.numeric(y.train),
@@ -254,6 +266,7 @@ run.Caret.IFL <- function(config.file,
                    target = y_var,
                    lags = lags,
                    initial = initial, horizon = horizon, skip = skip)
+
 
   bestTune <- fit$bestTune
   bestModel <- fit$finalModel
@@ -265,11 +278,10 @@ run.Caret.IFL <- function(config.file,
     subsample = bestTune$subsample
   )
 
-  features <- setdiff(colnames(dfl.train), "tnum")
+  features <- bestModel$feature_names
   dtrain <- xgb.DMatrix(as.matrix(dfl.train[, features, drop = FALSE]),
                         label = as.numeric(y.train))
-  final_model <- xgb.train(params, dtrain, nrounds = bestTune$nrounds, verbose = 0)
-
+  final_model <- xgb.train(params, dtrain, nrounds = bestTune$nrounds, verbose = 2)
 
   if (shap.test){
     shap_test <- predict(

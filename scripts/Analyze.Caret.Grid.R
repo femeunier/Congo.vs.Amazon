@@ -18,7 +18,7 @@ dir.name <- "/kyukon/data/gent/vo/000/gvo00074/felicien/R/outputs/GPP_caret/"
 df.QoF <- df.test <- df.SHAP <-
   data.frame()
 
-suffix <- "Lag"
+suffix <- "noLag"
 
 for (cmodel in models){
   cdir <- file.path(dir.name,cmodel)
@@ -36,6 +36,13 @@ for (cmodel in models){
   y.test <- cop[["y.test"]]
   test_ind <- cop[["test_ind"]]
   dfl <- cop[["dfl"]]
+
+  if (is.null(dfl)){
+    next()
+  }
+
+  print(dim(dfl %>% na.omit()))
+  print(dim(dfl.test %>% na.omit()))
 
   features <- setdiff(colnames(dfl.test), "tnum")
   y.pred <- predict(final_model,
@@ -106,8 +113,6 @@ for (cmodel in models){
   # sv_dependence(sv, "gppanomaly_L1", color_var = "gppanomaly_L1")  # dependence plot
 
 }
-
-
 
 saveRDS(df.QoF,
         paste0("./outputs/QoF.allModels.Caret_",suffix,".RDS"))

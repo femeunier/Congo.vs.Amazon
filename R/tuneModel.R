@@ -67,7 +67,7 @@ tuneModel <- function(train, y, target,
   )
 
   # Don’t pass tnum as a feature
-  x_nontime <- as.data.frame(x)[, setdiff(colnames(x), "tnum"), drop = FALSE]
+  x_nontime <- as.data.frame(x)[, setdiff(colnames(x), c("tnum")), drop = FALSE]
 
   fit <- train(
     x = x_nontime,

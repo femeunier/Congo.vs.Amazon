@@ -34,9 +34,9 @@ main.config <- list(
     min_child_weight = c(1),
     subsample = c(0.8)),
 
-  include.past.lag = FALSE,
+  include.past.lag = TRUE,
 
-  suffix = "noLag",
+  suffix = "Lag",
 
   climate.location = "/data/gent/vo/000/gvo00074/felicien/R/outputs/ERA5/anomaly.",
   Ntest.month = 48)
