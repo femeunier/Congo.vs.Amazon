@@ -228,7 +228,7 @@ run.Caret.IFL <- function(config.file,
                                   drop_rows_with_na_lags = FALSE) %>%
       dplyr::select(-c(starts_with("lon_L"),
                        starts_with("lat_L"),
-                       starts_with(paste0(y_var,"_L")),
+                       starts_with(paste0(y_var,"_")),
                        starts_with("tnum_L"))) %>%
       arrange(tnum,lon,lat) %>%
       mutate(type = case_when(
