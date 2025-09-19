@@ -111,7 +111,9 @@ run.Caret.IFL <- function(config.file,
                                  loc.coords)
 
   temp.climate.df <- as.data.frame(t(temp.climate)[-1,])
-  temp.climate.df[["variable"]] <- sapply(strsplit(rownames(temp.climate.df),"\\."),"[[",1)
+  temp.climate.df[["variable"]] <- paste0(sapply(strsplit(rownames(temp.climate.df),"\\."),"[[",1),
+                                          ".",
+                                          sapply(strsplit(rownames(temp.climate.df),"\\."),"[[",2))
 
   cdf.climate <- temp.climate.df %>%
     pivot_longer(cols = -variable,
