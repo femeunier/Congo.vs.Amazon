@@ -203,13 +203,6 @@ run.Caret.IFL <- function(config.file,
   # df <- scale_z(df, mu, sdv) %>%
   #   arrange(tnum,lon,lat)
 
-
-  mu  <- sapply(df[train_ind1, , drop = FALSE], mean,na.rm = TRUE); mu[c(y_var,"lon","lat","tnum")]  <- 0
-  sdv <- sapply(df[train_ind1, , drop = FALSE], sd,na.rm = TRUE);   sdv[c(y_var,"lon","lat","tnum")] <- 1
-
-  # df <- scale_z(df, mu, sdv) %>%
-  #   arrange(tnum,lon,lat)
-
   if (include.past.lag){
     dfl.all <- make_lags_by_group(df,
                                   max_lag = lags,
