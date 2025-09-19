@@ -18,7 +18,7 @@ dir.name <- "/kyukon/data/gent/vo/000/gvo00074/felicien/R/outputs/GPP_caret/"
 df.QoF <- df.test <- df.SHAP <-
   data.frame()
 
-suffix <- "noLag"
+suffix <- "noLag_CRUJRA"
 
 for (cmodel in models){
   cdir <- file.path(dir.name,cmodel)
@@ -41,8 +41,8 @@ for (cmodel in models){
     next()
   }
 
-  print(dim(dfl %>% na.omit()))
-  print(dim(dfl.test %>% na.omit()))
+  # print(dim(dfl %>% na.omit()))
+  # print(dim(dfl.test %>% na.omit()))
 
   features <- setdiff(colnames(dfl.test), "tnum")
   y.pred <- predict(final_model,
@@ -53,9 +53,9 @@ for (cmodel in models){
                  as.numeric(y.pred))
   MAE <- mean(abs(y.test - y.pred),na.rm = TRUE)
 
-  XYtest <- dfl[test_ind,]
-  XYtest[["pred"]] <- y.pred
-
+  XYtest <- as.data.frame(cbind(dfl.test,
+                                gppanomaly = y.test,
+                                pred =y.pred))
 
   df.test <- bind_rows(df.test,
                        XYtest %>%
@@ -70,7 +70,7 @@ for (cmodel in models){
 
   RMSE.region <- caret::RMSE(df2plot$obs.m,df2plot$pred.m)
   RSQ.region <- rsq_vec(as.vector(df2plot$obs.m),
-                 as.numeric(df2plot$pred.m))
+                        as.numeric(df2plot$pred.m))
   MAE.region <- mean(abs(df2plot$obs.m - df2plot$pred.m),na.rm = TRUE)
 
 

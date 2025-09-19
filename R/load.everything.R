@@ -13,5 +13,6 @@ load.everything <- function(){
   library(lubridate)
   library(shapviz)
   library(Congo.vs.Amazon)
+  library(slider)
 
 }
