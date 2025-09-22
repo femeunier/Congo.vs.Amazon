@@ -199,22 +199,28 @@ run.Caret.IFL <- function(config.file,
 
   if (!is.null(rolls)){
     for (croll in rolls){
-            df <- cbind(df,
-                        temp.df %>%
-                          group_by(lon, lat) %>%
-                          arrange(tnum, .by_group = TRUE) %>%
-                          mutate(across(
-                            -any_of(c("lon", "lat", "tnum")),
-                            ~ slide_dbl(.x, mean, .before = (croll - 1), .complete = FALSE),
-                            .names = paste0("{.col}_roll",croll))) %>%
-                          ungroup() %>%
-                          dplyr::select(ends_with(paste0("_roll",croll))))
+
+      print(paste0("Adding rolling mean variable -",croll))
+
+      df <- cbind(df,
+                  temp.df %>%
+                    group_by(lon, lat) %>%
+                    arrange(tnum, .by_group = TRUE) %>%
+                    mutate(across(
+                      -any_of(c("lon", "lat", "tnum")),
+                      ~ slide_dbl(.x, mean, .before = (croll - 1), .complete = FALSE),
+                      .names = paste0("{.col}_roll",croll))) %>%
+                    ungroup() %>%
+                    dplyr::select(ends_with(paste0("_roll",croll))))
     }
   }
 
 
   if (!is.null(sums)){
     for (csum in sums){
+
+      print(paste0("Adding rolling sum variable -",csum))
+
       df <- cbind(df,
                   temp.df %>%
                     group_by(lon, lat) %>%
@@ -228,10 +234,7 @@ run.Caret.IFL <- function(config.file,
     }
   }
 
-
-
   all.tnum <- df[["tnum"]]
-
 
   if (is.null(pos)){
     pos <- sample((lags+1):(length(time_vals)-(Ntest.month-1)),1)
