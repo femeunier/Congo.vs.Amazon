@@ -46,6 +46,11 @@ run.Caret.IFL <- function(config.file,
     suffix <- ""
   }
 
+  rolls <- config[["rolls"]]
+  sums <- config[["sums"]]
+
+  pos <- config[["pos"]]
+
   ##############################################################################
 
   climate.list <- list()
@@ -187,10 +192,51 @@ run.Caret.IFL <- function(config.file,
     dplyr::select(-any_of(c("lon_lat","year","month"))) %>%
     arrange(tnum,lon,lat)
 
+  if (!is.null(rolls) | !is.null(sums)){
+    temp.df <- df
+  }
+
+
+  if (!is.null(rolls)){
+    for (croll in rolls){
+            df <- cbind(df,
+                        temp.df %>%
+                          group_by(lon, lat) %>%
+                          arrange(tnum, .by_group = TRUE) %>%
+                          mutate(across(
+                            -any_of(c("lon", "lat", "tnum")),
+                            ~ slide_dbl(.x, mean, .before = (croll - 1), .complete = FALSE),
+                            .names = paste0("{.col}_roll",croll))) %>%
+                          ungroup() %>%
+                          dplyr::select(ends_with(paste0("_roll",croll))))
+    }
+  }
+
+
+  if (!is.null(sums)){
+    for (csum in sums){
+      df <- cbind(df,
+                  temp.df %>%
+                    group_by(lon, lat) %>%
+                    arrange(tnum, .by_group = TRUE) %>%
+                    mutate(across(
+                      -any_of(c("lon", "lat", "tnum")),
+                      ~ slide_dbl(.x, sum, .before = (csum - 1), .complete = FALSE),
+                      .names = paste0("{.col}_sum",csum))) %>%
+                    ungroup() %>%
+                    dplyr::select(ends_with(paste0("_sum",csum))))
+    }
+  }
+
+
+
   all.tnum <- df[["tnum"]]
 
-  pos <- sample((lags+1):(length(time_vals)-(Ntest.month-1)),1)
-  pos <- 505
+
+  if (is.null(pos)){
+    pos <- sample((lags+1):(length(time_vals)-(Ntest.month-1)),1)
+  }
+
   all.test.pos <- pos:(pos+Ntest.month-1)
   test_ind <- which(all.tnum %in% time_vals[all.test.pos])
   all.buffer.pos <- c((pos-lags):(pos-1),

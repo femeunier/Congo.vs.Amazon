@@ -75,7 +75,7 @@ for (cmodel in models){
 
   cjobname <- paste0("job_",cmodel,".pbs")
   ED2scenarios::write_jobR(file = file.path(dir.name,cmodel,cjobname),
-                           nodes = 1,ppn = 16,mem = 100,walltime = 3,
+                           nodes = 1,ppn = 16,mem = 100,walltime = 6,
                            prerun = "ml purge ; ml R-bundle-Bioconductor/3.20-foss-2024a-R-4.4.2",
                            CD = file.path(dir.name,cmodel),
                            Rscript = paste0("Rscript.",suffix,".R"))
