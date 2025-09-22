@@ -204,6 +204,7 @@ run.Caret.IFL <- function(config.file,
 
       df <- cbind(df,
                   temp.df %>%
+                    group_by(lon, lat) %>%
                     arrange(tnum, .by_group = TRUE) %>%
                     mutate(across(
                       -any_of(c("lon", "lat", "tnum")),
@@ -222,6 +223,7 @@ run.Caret.IFL <- function(config.file,
 
       df <- cbind(df,
                   temp.df %>%
+                    group_by(lon, lat) %>%
                     arrange(tnum, .by_group = TRUE) %>%
                     mutate(across(
                       -any_of(c("lon", "lat", "tnum")),

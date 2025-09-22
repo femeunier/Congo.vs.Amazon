@@ -21,8 +21,8 @@ main.config <- list(
   year.min = 1980,
   year.max = 2025,
   lags = 12,
-  initial = 432,
-  horizon = 12,
+  initial = 408,
+  horizon = 24,
   skip = 11,
 
   Grid = expand.grid(
@@ -36,11 +36,18 @@ main.config <- list(
 
   include.past.lag = FALSE,
 
-  suffix = "noLag_CRUJRA",
+  suffix = "noLag_CRUJRA_rollsum",
 
   climate.location = c("/data/gent/vo/000/gvo00074/felicien/R/outputs/CRUJRA/anomaly.",
                        "/data/gent/vo/000/gvo00074/felicien/R/outputs/CRUJRA/abs."),
-  Ntest.month = 48)
+  Ntest.month = 24,
+
+  pos = 505,
+
+  rolls = c(3,6),
+  sums = c(3,6)
+  )
+
 
 
 dir.name <- "/kyukon/data/gent/vo/000/gvo00074/felicien/R/outputs/GPP_caret/"
@@ -59,7 +66,7 @@ for (cmodel in models){
   model.config <- main.config
   model.config[["CC.location"]] <- paste0("/data/gent/vo/000/gvo00074/felicien/R/outputs/DGVM/",cmodel,"/",main.config[["y_var"]],".",cmodel)
   model.config[["IFL"]] <- readRDS("./outputs/Amazon.coord.ILF.v13.RDS") %>%
-    filter(model == "ORCHIDEE")
+    filter(model == cmodel)
   model.config[["dest.dir"]] <- file.path(dir.name,cmodel,cmodel)
 
 
@@ -73,7 +80,7 @@ for (cmodel in models){
                      paste0("Rscript.",suffix,".R"),
                      modelconfig.file)
 
-  cjobname <- paste0("job_",cmodel,".pbs")
+  cjobname <- paste0("job_",cmodel,"_",suffix,".pbs")
   ED2scenarios::write_jobR(file = file.path(dir.name,cmodel,cjobname),
                            nodes = 1,ppn = 16,mem = 100,walltime = 6,
                            prerun = "ml purge ; ml R-bundle-Bioconductor/3.20-foss-2024a-R-4.4.2",
